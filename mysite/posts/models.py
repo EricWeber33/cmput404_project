@@ -43,7 +43,7 @@ class Post(models.Model):
     content = models.TextField()
     author = models.ForeignKey(
         Author, on_delete=models.CASCADE)
-    categories = models.ManyToManyField(Category)
+    categories = models.ManyToManyField(Category, blank=True)
     count = models.IntegerField()
     comments = models.CharField(max_length=200)
     published = models.DateTimeField(auto_now=True)
