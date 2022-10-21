@@ -10,9 +10,10 @@ class Author(models.Model):
     displayName = models.CharField(max_length=200)
     github = models.CharField(max_length=200)
     profileImage = models.CharField(max_length=200)
-    following = models.ManyToManyField('self', symmetrical=False)
+    following = models.ManyToManyField('self', symmetrical=False, blank=True)
 
 # class FollowRequest(models.Model):
+#     #  actor is sending a request to object
 #     type = "Follow"
 #     summary = models.CharField(max_length=200)
 #     # the sender may not exist in the reciever's db
