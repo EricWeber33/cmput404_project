@@ -10,7 +10,7 @@ class Author(models.Model):
     displayName = models.CharField(max_length=200)
     github = models.CharField(max_length=200)
     profileImage = models.CharField(max_length=200)
-    following = models.ManyToManyField('self', symmetrical=False)
+    following = models.ManyToManyField('self', blank=True, symmetrical=False)
 
 # class FollowRequest(models.Model):
 #     type = "Follow"

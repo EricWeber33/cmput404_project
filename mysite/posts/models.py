@@ -9,6 +9,7 @@ class Category(models.Model):
     def __str__(self):
         return self.name
 
+
 class Post(models.Model):
     # Content type options
     MARKDOWN = 'text/markdown'
@@ -35,17 +36,17 @@ class Post(models.Model):
     type = "post"
     title = models.CharField(max_length=200)
     id = models.CharField(max_length=200, primary_key=True)
-    source = models.CharField(max_length=200)
-    origin = models.CharField(max_length=200)
+    source = models.CharField(blank=True, max_length=200)
+    origin = models.CharField(blank=True, max_length=200)
     description = models.CharField(max_length=200)
     contentType = models.CharField(
         max_length=50, choices=CONTENT_TYPES, default=PLAIN)
     content = models.TextField()
     author = models.ForeignKey(
         Author, on_delete=models.CASCADE)
-    categories = models.ManyToManyField(Category)
+    categories = models.ManyToManyField(Category, blank=True)
     count = models.IntegerField()
-    comments = models.CharField(max_length=200)
+    comments = models.CharField(blank=True, max_length=200)
     published = models.DateTimeField(auto_now=True)
     visibility = models.CharField(
         max_length=25, choices=VISIBILITY_CHOICES, default=PUBLIC)
