@@ -10,7 +10,7 @@ from datetime import datetime
 # Create your tests here.
 
 HOST = "http://testserver"
-ID = "postTestBoy"
+ID = "postTest"
 URL = f'{HOST}/authors/{ID}'
 
 class PostsTest(TestCase):
@@ -39,5 +39,7 @@ class PostsTest(TestCase):
 
 
     def test_resolution(self):
-        resolver = resolve('/authors/postTestBoy/posts/PostID')
+        resolver = resolve(f'/authors/{ID}/posts/')
+        self.assertEqual(resolver.view_name, 'posts.views.PostList')
+        resolver = resolve(f'/authors/{ID}/posts/PostID')
         self.assertEqual(resolver.view_name, 'posts.views.PostDetail')
