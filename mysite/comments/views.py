@@ -1,9 +1,10 @@
+from xml.etree.ElementTree import Comment
 from django.http import Http404, HttpResponse
 from django.shortcuts import render
 from rest_framework.views import APIView
 from rest_framework.response import Response
 
-from .serializer import CommentSerializer, CommentsSerializer
+from .serializer import CommentSerializer, CommentsSerializer, PostSerializaer
 
 from .models import Post
 
@@ -19,4 +20,7 @@ class CommentList(APIView):
 
     def post(self, request, author, pk):
         # POST [local] if you post an object of “type”:”comment”, it will add your comment to the post whose id is pk
-        pass
+        post = Post.objects.filter(following__id__in=[pk])
+        serializer = CommentsSerializer(post, data={comments: request.data}, partial=True)
+        serializer.save()
+        return Response(serializer.data)
