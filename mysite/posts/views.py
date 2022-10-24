@@ -1,15 +1,23 @@
 from django.http import Http404, HttpResponse
-from django.shortcuts import render
+from django.shortcuts import get_object_or_404
 from rest_framework.views import APIView
 from rest_framework.response import Response
+
+from .serializer import PostSerializer
+from .models import Post
+from authors.models import Author
 
 # Create your views here.
 
 class PostDetail(APIView):
     # URL: ://service/authors/{AUTHOR_ID}/posts/{POST_ID} 
-    def get(self, request, author, pk, format=None):
+
+    def get(self, request, author_id, postID, format=None):
         # GET [local, remote] get the public post whose id is pk
-        pass
+        post = get_object_or_404(Post, pk=postID)
+        serializer = PostSerializer(post)
+        return Response(serializer.data)
+
     def post(self, request, author, pk, format=None):
         # POST [local] update the post whose id is pk (must be authenticated)
         pass
@@ -22,8 +30,13 @@ class PostDetail(APIView):
 
 class PostList(APIView):
     # URL ://service/authors/{AUTHOR_ID}/posts/ 
-    def get(self, request, author, format=None):
+    def get(self, request, author_id, format=None):
         # GET [local, remote] get the recent posts from author AUTHOR_ID (paginated)
+        author = Author.objects.get(pk=author_id)
+        posts = Post.objects.filter(author=author)
+        serializer = PostSerializer(posts, many = True)
+        return Response(serializer.data)
+
         pass
     def post(self, request, author, format=None):
         # POST [local] create a new post but generate a new id
