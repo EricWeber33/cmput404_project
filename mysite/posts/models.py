@@ -62,3 +62,19 @@ class Comment(models.Model):
     contentType = "text/markdown"
     published = models.DateTimeField(auto_now=True)
     id = models.CharField(max_length=200, primary_key=True)
+
+class LikePost(models.Model):
+    id = models.CharField(max_length=200, primary_key=True)
+    type = "Like"
+    object = models.CharField(max_length=500, null=True)
+    author = models.ForeignKey(Author, on_delete=models.CASCADE)
+    summary = models.CharField(max_length=500)
+    url = models.URLField(max_length=250)
+
+class LikeComment(models.Model):
+    id = models.CharField(max_length=200, primary_key=True)
+    type = "Like"
+    object = models.CharField(max_length=500, null=True)
+    author = models.ForeignKey(Author, on_delete=models.CASCADE)
+    summary = models.CharField(max_length=500)
+    url = models.URLField(max_length=250)
