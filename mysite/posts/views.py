@@ -14,7 +14,8 @@ class PostDetail(APIView):
 
     def get(self, request, author_id, postID, format=None):
         # GET [local, remote] get the public post whose id is pk
-        post = get_object_or_404(Post, pk=postID)
+        author = Author.objects.get(pk=author_id)
+        post = get_object_or_404(Post, pk=postID, author=author)
         serializer = PostSerializer(post)
         return Response(serializer.data)
 
@@ -34,7 +35,7 @@ class PostList(APIView):
         # GET [local, remote] get the recent posts from author AUTHOR_ID (paginated)
         author = Author.objects.get(pk=author_id)
         posts = Post.objects.filter(author=author)
-        serializer = PostSerializer(posts, many = True)
+        serializer = PostSerializer(posts, many=True)
         return Response(serializer.data)
 
         pass
