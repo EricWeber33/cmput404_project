@@ -41,5 +41,5 @@ class PostsTest(TestCase):
     def test_resolution(self):
         resolver = resolve(f'/authors/{ID}/posts/')
         self.assertEqual(resolver.view_name, 'posts.views.PostList')
-        resolver = resolve(f'/authors/{ID}/posts/PostID')
+        resolver = resolve(f'/authors/{ID}/posts/PostID/')
         self.assertEqual(resolver.view_name, 'posts.views.PostDetail')
