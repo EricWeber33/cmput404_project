@@ -1,11 +1,14 @@
+from pydoc import visiblename
 from django.http import Http404, HttpResponse
 from django.shortcuts import get_object_or_404
 from rest_framework.views import APIView
 from rest_framework.response import Response
 
-from .serializer import PostSerializer
+from .serializer import PostSerializer, CreatePostSerializer
 from .models import Post
 from authors.models import Author
+
+import uuid
 
 # Create your views here.
 
@@ -31,6 +34,8 @@ class PostDetail(APIView):
 
 class PostList(APIView):
     # URL ://service/authors/{AUTHOR_ID}/posts/ 
+    serializer_class = CreatePostSerializer
+
     def get(self, request, author_id, format=None):
         # GET [local, remote] get the recent posts from author AUTHOR_ID (paginated)
         author = Author.objects.get(pk=author_id)
@@ -38,10 +43,22 @@ class PostList(APIView):
         serializer = PostSerializer(posts, many=True)
         return Response(serializer.data)
 
-        pass
-    def post(self, request, author, format=None):
+    def post(self, request, author_id, format=None):
         # POST [local] create a new post but generate a new id
-        pass
+        serializer = self.serializer_class(data=request.data)
+        author = Author.objects.get(pk=author_id)
+        postIDNew = uuid.uuid4() # create a unique id for the post using the uuid library
+        if serializer.is_valid():
+            title = serializer.data.get('title')
+            description = serializer.data.get('description')
+            source = serializer.data.get('source')
+            visibility = serializer.data.get('visibility')
+            unlisted = serializer.data.get('unlisted')
+        
+        post = Post(id=postIDNew, title=title, description=description, source=source, author=author, visibility=visibility, unlisted=unlisted)
+        post.save()
+        return Response(CreatePostSerializer(post).data, status=200)
+
 
 class ImageDetail(APIView):
     # URL: ://service/authors/{AUTHOR_ID}/posts/{POST_ID}/image 
