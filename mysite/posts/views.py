@@ -23,7 +23,7 @@ class PostDetail(APIView):
         serializer = PostSerializer(post)
         return Response(serializer.data)
 
-    def post(self, request, author_id, postID, format=None):
+    def post(self, request, author_id, postID, format=None): # WIP (cannot handle an incomplete HTML form)
         # POST [local] update the post whose id is pk (must be authenticated)
         serializer = self.serializer_class(data=request.data)
         author = Author.objects.get(pk=author_id)
@@ -47,13 +47,15 @@ class PostDetail(APIView):
             return Response(CreatePostSerializer(post).data, status=200)
         return Response(status=204)
 
-
     def put(self, request, author, pk, format=None):
         # PUT [local] create a post where its id is pk
         pass
-    def delete(self, request, author, pk, format=None):
+    def delete(self, request, author_id, postID, format=None):
         # DELETE [local] remove the post whose id is pk
-        pass
+        author = Author.objects.get(pk=author_id)
+        post = get_object_or_404(Post, pk=postID, author=author)
+        post.delete()
+        return Response('Post deleted successfully.', status=200)
 
 class PostList(APIView):
     # URL ://service/authors/{AUTHOR_ID}/posts/ 
