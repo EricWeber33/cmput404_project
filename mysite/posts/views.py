@@ -1,6 +1,7 @@
 
 from re import A
 from operator import mod
+from xmlrpc.client import DateTime
 from django.http import Http404, HttpResponse
 from django.shortcuts import get_object_or_404
 from rest_framework.views import APIView
@@ -27,7 +28,7 @@ def get_object_from_url_or_404(model, url):
             url = url + "/"
         try:
             return model.objects.get(pk=url)
-        except model.DoeNotExist:
+        except model.DoesNotExist:
             raise Http404
 
 class PostDetail(APIView):
@@ -79,7 +80,8 @@ class CommentDetail(APIView):
         serializer = CommentSerializer(comment)
         return Response(serializer.data)
 
-    def post(self, request, auhtor_id, post_id, comment_id):
+    def post(self, request, author_id, post_id, comment_id):
+        # POST [local] update a comment
         pass
 
 class CommentList(APIView):
@@ -91,9 +93,18 @@ class CommentList(APIView):
         serializer = CommentsSerializer(comments)
         return Response(serializer.data)
 
-    def post(self, request, author, pk):
+    def post(self, request, author_id, post_id, format=None):
         # POST [local] if you post an object of “type”:”comment”, it will add your comment to the post whose id is pk
-        pass
+        url = request.build_absolute_uri()
+        comments_list = get_object_from_url_or_404(Comments, url)
+        if not CommentSerializer(data=request.data).is_valid():
+            pass
+            return Response('Invalid comment object', status=status.HTTP_400_BAD_REQUEST)
+        comment_single = Comment(author=Author.objects.get(pk=author_id), comment=request.data['comment'], published=request.data['published'], id=request.data['id'])
+        comments_list.comments.add(comment_single)
+        comments_list.save()
+        comments_serializer = CommentsSerializer(comments_list)
+        return Response(comments_serializer.data)
 
 class LikePostList(APIView):
     # URL: ://service/authors/{AUTHOR_ID}/posts/{POST_ID}/likes
@@ -192,4 +203,5 @@ class AuthorLikesList(APIView):
             
         except Author.DoesNotExist:
             return Response('Author doesn\'t exist', status=status.HTTP_404_NOT_FOUND)
+
 
