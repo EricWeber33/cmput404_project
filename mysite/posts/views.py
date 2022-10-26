@@ -14,6 +14,7 @@ import uuid
 
 class PostDetail(APIView):
     # URL: ://service/authors/{AUTHOR_ID}/posts/{POST_ID} 
+    serializer_class = CreatePostSerializer
 
     def get(self, request, author_id, postID, format=None):
         # GET [local, remote] get the public post whose id is pk
@@ -22,9 +23,31 @@ class PostDetail(APIView):
         serializer = PostSerializer(post)
         return Response(serializer.data)
 
-    def post(self, request, author, pk, format=None):
+    def post(self, request, author_id, postID, format=None):
         # POST [local] update the post whose id is pk (must be authenticated)
-        pass
+        serializer = self.serializer_class(data=request.data)
+        author = Author.objects.get(pk=author_id)
+        post = get_object_or_404(Post, pk=postID, author=author)
+        # Fetch data
+        if serializer.is_valid():
+            title = serializer.data.get('title')
+            description = serializer.data.get('description')
+            source = serializer.data.get('source')
+            content = serializer.data.get('content')
+            visibility = serializer.data.get('visibility')
+            unlisted = serializer.data.get('unlisted')     
+            # Update Post
+            if title != '' or None: post.title = title
+            if description != ''or None: post.description = description
+            if source != ''or None: post.source = source
+            if content != ''or None: post.content = content
+            if visibility != ''or None: post.visibility = visibility
+            if unlisted != ''or None: post.unlisted = unlisted
+            post.save()
+            return Response(CreatePostSerializer(post).data, status=200)
+        return Response(status=204)
+
+
     def put(self, request, author, pk, format=None):
         # PUT [local] create a post where its id is pk
         pass
@@ -48,16 +71,19 @@ class PostList(APIView):
         serializer = self.serializer_class(data=request.data)
         author = Author.objects.get(pk=author_id)
         postIDNew = uuid.uuid4() # create a unique id for the post using the uuid library
-        if serializer.is_valid():
+        if serializer.is_valid(): # fetch fields
             title = serializer.data.get('title')
             description = serializer.data.get('description')
             source = serializer.data.get('source')
+            content = serializer.data.get('content')
             visibility = serializer.data.get('visibility')
             unlisted = serializer.data.get('unlisted')
-        
-        post = Post(id=postIDNew, title=title, description=description, source=source, author=author, visibility=visibility, unlisted=unlisted)
-        post.save()
-        return Response(CreatePostSerializer(post).data, status=200)
+            # Create post object
+            post = Post(id=postIDNew, title=title, description=description, source=source, content=content, author=author, visibility=visibility, unlisted=unlisted)
+            post.save()
+            return Response(CreatePostSerializer(post).data, status=200)
+        return Response('Post was unsuccessful. Please check the required information was filled out correctly again.', status=204)
+
 
 
 class ImageDetail(APIView):
