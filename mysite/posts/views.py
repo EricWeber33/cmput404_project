@@ -1,4 +1,6 @@
+
 from re import A
+from operator import mod
 from django.http import Http404, HttpResponse
 from django.shortcuts import get_object_or_404
 from rest_framework.views import APIView
@@ -9,11 +11,24 @@ from authors.serializer import AuthorSerializer
 from .serializer import LikeCommentSerializer, LikePostSerializer
 from .models import Comment, LikeComment, LikePost, Post
 
-from .serializer import PostSerializer
-from .models import Post
+from .serializer import PostSerializer, CommentSerializer, CommentsSerializer
+from .models import Post, Comments, Comment
 from authors.models import Author
 
-# Create your views here.
+
+def get_object_from_url_or_404(model, url):
+    """attempts to return a db item using a url as primary key"""
+    try:
+        return model.objects.get(pk=url)
+    except model.DoesNotExist:
+        if url[-1] == '/':
+            url = url[:-1]
+        else:
+            url = url + "/"
+        try:
+            return model.objects.get(pk=url)
+        except model.DoeNotExist:
+            raise Http404
 
 class PostDetail(APIView):
     # URL: ://service/authors/{AUTHOR_ID}/posts/{POST_ID} 
@@ -56,11 +71,26 @@ class ImageDetail(APIView):
         # return 404 if not an image
         pass
 
+
+class CommentDetail(APIView):
+    def get(self, request, author_id, post_id, comment_id):
+        url = request.build_absolute_uri()
+        comment = get_object_from_url_or_404(Comment, url)
+        serializer = CommentSerializer(comment)
+        return Response(serializer.data)
+
+    def post(self, request, auhtor_id, post_id, comment_id):
+        pass
+
 class CommentList(APIView):
     # URL: ://service/authors/{AUTHOR_ID}/posts/{POST_ID}/comments 
-    def get(self, request, author, pk):
+    def get(self, request, author_id, post_id):
         # GET [local, remote] get the list of comments of the post whose id is pk (paginated)
-        pass
+        url = request.build_absolute_uri()
+        comments = get_object_from_url_or_404(Comments, url)
+        serializer = CommentsSerializer(comments)
+        return Response(serializer.data)
+
     def post(self, request, author, pk):
         # POST [local] if you post an object of “type”:”comment”, it will add your comment to the post whose id is pk
         pass
@@ -162,3 +192,4 @@ class AuthorLikesList(APIView):
             
         except Author.DoesNotExist:
             return Response('Author doesn\'t exist', status=status.HTTP_404_NOT_FOUND)
+
