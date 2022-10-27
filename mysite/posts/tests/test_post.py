@@ -3,8 +3,8 @@ from unittest import skip
 from django.test import RequestFactory, TestCase
 from django.urls import resolve
 from authors.models import Author
-from .views import CommentList, CommentDetail
-from .models import Post, Comment, Comments
+from ..views import CommentList, CommentDetail
+from ..models import Post, Comment, Comments
 from datetime import datetime
 # Create your tests here.
 
