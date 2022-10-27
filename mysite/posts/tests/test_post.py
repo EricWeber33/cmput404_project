@@ -5,7 +5,7 @@ from xmlrpc.client import NOT_WELLFORMED_ERROR
 from django.test import RequestFactory, TestCase
 from django.urls import resolve
 from authors.models import Author
-from .models import Post
+from ..models import Post
 from datetime import datetime
 # Create your tests here.
 
