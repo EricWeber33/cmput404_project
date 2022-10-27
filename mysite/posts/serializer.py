@@ -1,3 +1,4 @@
+from django.forms import CharField
 from rest_framework import serializers
 from .models import LikePost, LikeComment, Post, Comment, Comments
 
@@ -8,6 +9,7 @@ class PostSerializer(serializers.ModelSerializer):
             'author', 'categories', 'count', 'comments', 'published', 'visibility', 'unlisted')
 
 class CommentSerializer(serializers.ModelSerializer):
+    id = serializers.CharField()
     class Meta:
         model = Comment
         fields = ('type', 'author', 'comment', 'contentType', 'published', 'id')
@@ -15,12 +17,14 @@ class CommentSerializer(serializers.ModelSerializer):
 
 class CommentsSerializer(serializers.ModelSerializer):
     comments = CommentSerializer(many=True)
+    id = serializers.CharField()
     class Meta:
         model = Comments
         fields = ('type', 'page', 'size', 'post', 'id', 'comments')
 
 class PostSerializer(serializers.ModelSerializer):
     commentsSrc = CommentsSerializer()
+    id = serializers.CharField()
     class Meta:
         model = Post
         fields = ('type', 'title', 'id', 'source', 'origin', 'description', 'contentType', 'content', 
