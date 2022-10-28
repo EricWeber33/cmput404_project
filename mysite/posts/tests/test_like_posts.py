@@ -3,6 +3,7 @@ from datetime import datetime
 import urllib
 from authors.models import Author
 from ..models import LikePost, Post
+from django.contrib.auth.models import User
 
 import json
 from rest_framework.test import APIClient, APITestCase
@@ -21,7 +22,13 @@ def get_dict(byte):
 
 class LikePostsTest(APITestCase):
     def setUp(self):
+        self.user = User.objects.create(
+            username="test_user",
+            email="test@gmail.com",
+            password="testpassword"
+        )
         self.apiClient = APIClient()
+        self.apiClient.force_login(self.user)
 
         Author.objects.create(
             id="1", 
