@@ -60,10 +60,27 @@ class Post(models.Model):
     author = models.ForeignKey(
         Author, on_delete=models.CASCADE)
     categories = models.ManyToManyField(Category, blank=True)
-    count = models.IntegerField()
-    comments=models.CharField(max_length=200, blank=True)
+    count = models.IntegerField(default=0)
+    comments=models.CharField(max_length=200)
     commentsSrc = models.OneToOneField(Comments, related_name='%(class)s_post', on_delete=models.DO_NOTHING, null=True)
     published = models.DateTimeField(auto_now=True)
     visibility = models.CharField(
         max_length=25, choices=VISIBILITY_CHOICES, default=PUBLIC)
     unlisted = models.BooleanField()
+    
+class LikePost(models.Model):
+    id = models.CharField(max_length=200, primary_key=True)
+    type = "Like"
+    object = models.CharField(max_length=500, null=True)
+    author = models.ForeignKey(Author, on_delete=models.CASCADE)
+    summary = models.CharField(max_length=500)
+    url = models.URLField(max_length=250)
+
+class LikeComment(models.Model):
+    id = models.CharField(max_length=200, primary_key=True)
+    type = "Like"
+    object = models.CharField(max_length=500, null=True)
+    author = models.ForeignKey(Author, on_delete=models.CASCADE)
+    summary = models.CharField(max_length=500)
+    url = models.URLField(max_length=250)
+
