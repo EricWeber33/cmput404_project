@@ -2,11 +2,6 @@ from django.forms import CharField
 from rest_framework import serializers
 from .models import LikePost, LikeComment, Post, Comment, Comments
 
-class PostSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Post
-        fields = ('type', 'title', 'id', 'source', 'origin', 'description', 'contentType', 'content', 
-            'author', 'categories', 'count', 'comments', 'published', 'visibility', 'unlisted')
 
 class CreatePostSerializer(serializers.ModelSerializer):  # Specifies what needs to be given in the creation of a Post
     class Meta:
