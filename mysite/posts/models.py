@@ -23,8 +23,7 @@ class Comments(models.Model):
     size = models.IntegerField(default=5)
     post = models.CharField(max_length=200)
     id = models.CharField(max_length=200, primary_key=True)
-    comments = models.ManyToManyField(
-        Comment, blank=True)
+    comments = models.ManyToManyField(Comment, blank=True)
 
 class Post(models.Model):
     # Content type options
@@ -62,7 +61,7 @@ class Post(models.Model):
         Author, on_delete=models.CASCADE)
     categories = models.ManyToManyField(Category, blank=True)
     count = models.IntegerField()
-    comments=models.CharField(max_length=200)
+    comments=models.CharField(max_length=200, blank=True)
     commentsSrc = models.OneToOneField(Comments, related_name='%(class)s_post', on_delete=models.DO_NOTHING, null=True)
     published = models.DateTimeField(auto_now=True)
     visibility = models.CharField(
