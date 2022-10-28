@@ -1,4 +1,3 @@
-from email.policy import default
 from django.db import models;
 from authors.models import Author
 
@@ -24,8 +23,7 @@ class Comments(models.Model):
     size = models.IntegerField(default=5)
     post = models.CharField(max_length=200)
     id = models.CharField(max_length=200, primary_key=True)
-    comments = models.ManyToManyField(
-        Comment, blank=True)
+    comments = models.ManyToManyField(Comment, blank=True)
 
 class Post(models.Model):
     # Content type options

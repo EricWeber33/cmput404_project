@@ -1,4 +1,5 @@
 from django.db import models
+from django.contrib.auth.models import User
 
 # Create your models here.
 
@@ -11,6 +12,9 @@ class Author(models.Model):
     github = models.CharField(blank=True, max_length=200)
     profileImage = models.CharField(blank=True, max_length=200)
     following = models.ManyToManyField('self', blank=True, symmetrical=False)
+
+    user = models.OneToOneField(User, on_delete=models.CASCADE, default=None, null=True)
+    verified = models.BooleanField(default=False)
 
 # class FollowRequest(models.Model):
 #     #  actor is sending a request to object
