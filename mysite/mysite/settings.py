@@ -35,6 +35,7 @@ ALLOWED_HOSTS = ['0.0.0.0', 'localhost', '127.0.0.1', 'cmput404f22t17.herokuapp.
 INSTALLED_APPS = [
     'authors.apps.AuthorsConfig',
     'inbox.apps.InboxConfig',
+    'frontend.apps.FrontendConfig',
     'posts.apps.PostsConfig',
     'django.contrib.admin',
     'django.contrib.auth',
