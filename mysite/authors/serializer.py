@@ -5,3 +5,8 @@ class AuthorSerializer(serializers.ModelSerializer):
     class Meta:
         model = Author
         fields = ('type', 'id', 'url', 'host', 'displayName', 'github', 'profileImage')
+
+    def to_representation(self, instance):
+        ret = super().to_representation(instance)
+        ret['id'] = ret['url']
+        return ret
