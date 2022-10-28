@@ -106,7 +106,7 @@ def register_view(request):
                 scheme = request.scheme
                 user_url = scheme + '://' + domain + '/authors/'+user_id+'/'
                 author = Author.objects.create(
-                    id=user_url,
+                    id=user_id,
                     url=user_url,
                     host=domain,
                     displayName=displayName,
