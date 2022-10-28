@@ -11,8 +11,11 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+
+
 from .forms import LoginForm, RegisterForm
 from .models import Author
+from inbox.models import Inbox
 from .serializer import AuthorSerializer
 
 # Create your views here.
@@ -114,8 +117,10 @@ def register_view(request):
                     profileImage=profileImage,
                     user=user
                 )
+                inbox = Inbox.objects.create(author=user_url)
                 user.save()
                 author.save()
+                inbox.save()
                 return HttpResponseRedirect('/login/')
             except Exception as e:
                 print(e)

@@ -1,0 +1,25 @@
+<!-- templates/registration/login.html -->
+{% extends 'base.html' %}
+
+{% block title %}Social Distribution{% endblock %}
+
+{% block content %}
+<h2>Social Distribution Title</h2>
+<div>
+    {% for item in items %}
+        {% if item.type == "post" %}
+            {% block post %} {% endblock %}
+        {% endif %}
+        {% if item.type == "comment" %}
+            {% block comment_notif %} {% endblock %}
+        {% endif %}
+        {% if item.type == "Like" %}
+            {% block like %} {% endblock %}
+        {% endif %}
+        {% if item.type == "follow" %}
+            {% block follow %} {% endblock %}
+        {% endif %}
+        <hr>
+    {% endfor %}
+</div>
+{% endblock %}

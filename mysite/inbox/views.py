@@ -1,8 +1,8 @@
 from django.http import HttpResponse, Http404
-from django.shortcuts import get_object_or_404
 from rest_framework import status
 from rest_framework.views import APIView
 from rest_framework.response import Response
+from rest_framework.permissions import IsAuthenticated
 
 import json
 
@@ -25,6 +25,7 @@ def get_object_from_url_or_404(model, url):
             raise Http404
         
 class InboxView(APIView):
+    permission_classes = (IsAuthenticated,)
     
     # URL:://service/authors/{AUTHOR_ID}/inbox
     def get(self, request, pk, format=None):
