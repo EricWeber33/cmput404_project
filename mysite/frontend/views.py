@@ -1,4 +1,3 @@
-from urllib import response
 from django.shortcuts import render
 from django.http import HttpResponseRedirect
 from rest_framework.permissions import IsAuthenticated
