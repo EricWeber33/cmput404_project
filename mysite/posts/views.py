@@ -15,6 +15,7 @@ from .models import Comment, LikeComment, LikePost, Post
 
 from .serializer import PostSerializer, CreatePostSerializer, CommentSerializer, CommentsSerializer
 from .models import Post, Comments, Comment
+from inbox.models import Inbox
 from authors.models import Author
 
 import uuid
@@ -100,12 +101,22 @@ class PostList(APIView):
             description = serializer.data.get('description')
             source = serializer.data.get('source')
             content = serializer.data.get('content')
-            visibility = serializer.data.get('visibility')
+            visibility = serializer.data.get('visibility') #PUBLIC OR FRIENDS
             unlisted = serializer.data.get('unlisted')
             # Create post object
             post = Post(id=postIDNew, title=title, description=description, source=source, content=content, author=author, visibility=visibility, unlisted=unlisted)
             post.save()
+
+            if visibility == 'PUBLIC':
+                Inboxs = Inbox.objects.all()
+                for inbox in Inboxs:
+                    inbox.items.insert(0, CreatePostSerializer(post).data)
+                    inbox.save()
+            if visibility == 'FRIENDS':
+                pass
+    
             return Response(CreatePostSerializer(post).data, status=200)
+
         return Response('Post was unsuccessful. Please check the required information was filled out correctly again.', status=204)
 
 
