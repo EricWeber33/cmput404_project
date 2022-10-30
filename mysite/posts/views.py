@@ -106,17 +106,14 @@ class PostList(APIView):
             # Create post object
             post = Post(id=postIDNew, title=title, description=description, source=source, content=content, author=author, visibility=visibility, unlisted=unlisted)
             post.save()
-
             if visibility == 'PUBLIC':
                 Inboxs = Inbox.objects.all()
                 for inbox in Inboxs:
-                    inbox.items.insert(0, CreatePostSerializer(post).data)
+                    inbox.items.insert(0, PostSerializer(post).data)
                     inbox.save()
             if visibility == 'FRIENDS':
                 pass
-    
-            return Response(CreatePostSerializer(post).data, status=200)
-
+            return Response(PostSerializer(post).data, status=200)
         return Response('Post was unsuccessful. Please check the required information was filled out correctly again.', status=204)
 
 
