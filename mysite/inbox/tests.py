@@ -4,6 +4,7 @@ from authors.models import Author
 from posts.serializer import CommentSerializer, CommentsSerializer, PostSerializer
 from rest_framework.test import APITestCase
 from posts.models import Comment, Comments, Post
+from django.contrib.auth.models import User
 from .models import Inbox
 import json
 # Create your tests here.
@@ -19,6 +20,12 @@ COMMENT_URL = f'{COMMENTS_URL}{ID}'
 class InboxTest(APITestCase):
     
     def setUp(self):
+        self.user = User.objects.create(
+            username="test_user",
+            email="test@gmail.com",
+            password="testpassword"
+        )
+        self.client.force_login(self.user)
         self.author = Author.objects.create(
             id=ID, 
             url=URL,
