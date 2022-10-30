@@ -1,0 +1,49 @@
+<!-- templates/registration/login.html -->
+{% load static %}
+<html>
+    <head>
+        <link rel="stylesheet" href="{% static 'home.css' %}">
+    </head>
+    <body>
+        <h1>Social Distribution Title</h2>
+        <div>
+            {% block post_form %}
+            <h2>Make a Post</h2>
+            <form method="post" action="post_submit/">
+                {% csrf_token %}
+                {{ form.as_p }}
+                <button type="submit">Post</button>
+            </form>
+            <hr class="item_separator">
+            {% endblock %}
+            {% for item in items %}
+                {% if item.type == "post" %}
+                    {% block post %}
+                    <div class="post_headline">
+                        <div class="title">
+                            <h3>{{ item.title }}</h3>
+                        </div>
+                        <div class="author">
+                            <a href="{{ item.author.url }}"> {{ item.author.displayName }}</a>
+                        </div>
+                    </div>
+                    <div class="post_description">
+                        <h3>{{ item.description }}</h3>
+                    </div>
+                    <p>{{ item.content }}</p>
+                    {% endblock %}
+                {% endif %}
+                {% if item.type == "comment" %}
+                    {% block comment_notif %} {% endblock %}
+                {% endif %}
+                {% if item.type == "Like" %}
+                    {% block like %} {% endblock %}
+                {% endif %}
+                {% if item.type == "follow" %}
+                    {% block follow %} {% endblock %}
+                {% endif %}
+                <hr class="item_separator">
+            {% endfor %}
+        </div>
+    </body>
+</html>

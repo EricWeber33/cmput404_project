@@ -85,7 +85,7 @@ def login_view(request):
                 if hasattr(user, 'author'):
                     if user.author.verified:
                         login(request, user)
-                        return HttpResponseRedirect('/authors/{}/'.format(urllib.parse.quote(user.author.id, safe='')))
+                        return HttpResponseRedirect('/authors/{}/home/'.format(urllib.parse.quote(user.author.id, safe='')))
                 form.add_error('Server Admin has not verified your account')
             else:
                 form.add_error('Could not login that account')
