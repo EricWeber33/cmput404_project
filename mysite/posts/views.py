@@ -11,7 +11,7 @@ from rest_framework import status
 from authors.models import Author
 from authors.serializer import AuthorSerializer
 from .serializer import LikeCommentSerializer, LikePostSerializer
-from .models import Comment, LikeComment, LikePost, Post
+from .models import Comment, Comments, LikeComment, LikePost, Post
 
 from .serializer import PostSerializer, CreatePostSerializer, CommentSerializer, CommentsSerializer
 from .models import Post, Comments, Comment
@@ -93,18 +93,34 @@ class PostList(APIView):
 
     def post(self, request, author_id, format=None):
         # POST [local] create a new post but generate a new id
+        url = request.build_absolute_uri()
         serializer = self.serializer_class(data=request.data)
         author = Author.objects.get(pk=author_id)
         postIDNew = uuid.uuid4() # create a unique id for the post using the uuid library
         if serializer.is_valid(): # fetch fields
             title = serializer.data.get('title')
             description = serializer.data.get('description')
-            source = serializer.data.get('source')
+            source = f'{url}{postIDNew}/'
             content = serializer.data.get('content')
             visibility = serializer.data.get('visibility') #PUBLIC OR FRIENDS
             unlisted = serializer.data.get('unlisted')
+            comments = f'{url}{postIDNew}/comments/'
+            commentsSrc = Comments.objects.create(
+                post=f'{url}{postIDNew}/',
+                id=f'{url}{postIDNew}/comments/'
+            )
             # Create post object
-            post = Post(id=postIDNew, title=title, description=description, source=source, content=content, author=author, visibility=visibility, unlisted=unlisted)
+            post = Post.objects.create(
+                id=postIDNew,
+                title=title,
+                description=description,
+                source=source,
+                content=content,
+                author=author,
+                comments=comments,
+                commentsSrc=commentsSrc,
+                visibility=visibility,
+                unlisted=unlisted)
             post.save()
             if visibility == 'PUBLIC':
                 Inboxs = Inbox.objects.all()
