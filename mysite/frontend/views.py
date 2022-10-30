@@ -1,11 +1,37 @@
 from django.shortcuts import render
-
-# Create your views here.
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.decorators import permission_classes
 from inbox.models import Inbox
 from posts.models import Post
 from posts.serializer import PostSerializer
+from .forms import PostForm
+import uuid
+import requests
+
+
+@permission_classes(IsAuthenticated,)
+def post_submit(request, pk):
+    if request.method == 'POST':
+        form = PostForm(request.POST)
+        if form.is_valid():
+            title = form.cleaned_data.pop('title')
+            description = form.cleaned_data.pop('description')
+            content = form.cleaned_data.pop('content')
+            content_type = form.cleaned_data.pop('content_type')
+            visibility = form.cleaned_data.pop('visibility')
+            post_endpoint = request.build_absolute_uri().split('/home/')[0] + "/posts/"
+            post_id = uuid.uuid4().hex
+            while len(Post.objects.filter(pk=post_id)) < 1:
+                post_id = uuid.uuid4().hex
+            post = {
+                "type": post,
+                "title": title,
+                "id": post_id,
+                "description": description,
+                ""
+            }
+    return homepage_view(request, pk)
+            
 
 @permission_classes(IsAuthenticated,)
 def homepage_view(request, pk):
@@ -20,5 +46,5 @@ def homepage_view(request, pk):
         elif inbox.items[i]['type'] == "comment":
             pass
         inbox.save()
-
-    return render(request, 'homepage/home.html', {'type': inbox.type, 'items': inbox.items})
+    form = PostForm()
+    return render(request, 'homepage/home.html', {'type': inbox.type, 'items': inbox.items, "form": form})

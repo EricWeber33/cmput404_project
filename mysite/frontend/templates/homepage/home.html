@@ -1,11 +1,15 @@
 <!-- templates/registration/login.html -->
-{% extends 'base.html' %}
-
-{% block title %}Social Distribution{% endblock %}
-
-{% block content %}
 <h2>Social Distribution Title</h2>
 <div>
+    {% block post_form %}
+    <h2>Make a Post</h2>
+    <form method="post" action="post_submit/">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit">Post</button>
+    </form>
+    <hr>
+    {% endblock %}
     {% for item in items %}
         {% if item.type == "post" %}
             {% block post %} {% endblock %}
@@ -22,4 +26,3 @@
         <hr>
     {% endfor %}
 </div>
-{% endblock %}
