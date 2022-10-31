@@ -1,5 +1,4 @@
 from django import forms
-from django import forms
 
 class PostForm(forms.Form):
     title = forms.CharField(label='Title:')
