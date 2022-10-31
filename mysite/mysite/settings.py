@@ -29,6 +29,7 @@ DEBUG = True
 
 ALLOWED_HOSTS = ['0.0.0.0', 'localhost', '127.0.0.1', 'cmput404f22t17.herokuapp.com']
 
+CSRF_TRUSTED_ORIGINS = ["https://cmp404f22t17.herokuapp.com"]
 
 # Application definition
 
