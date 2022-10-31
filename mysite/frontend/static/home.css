@@ -1,7 +1,7 @@
 body {
     background: rgb(25, 25, 60);
     color:azure;
-    width: 40%;
+    width: 50%;
     margin: auto;
 }
 
@@ -11,6 +11,17 @@ h1, h2, h3, h4, h5 {
 
 p {
     font-family: monospace;
+}
+
+.inbox_block {
+    border: 1px solid magenta;
+    border-radius: 5px;
+    padding-left: 5%;
+    padding-right: 5%;
+}
+
+.notif_link {
+    color: azure;
 }
 
 .post_headline {
@@ -55,4 +66,16 @@ p {
     border: none;
     height: 3px;
     background: linear-gradient(0deg, magenta 0%, rgb(0, 225, 255) 70%);
+}
+
+.comment {
+    border: 1px solid rgb(0, 225, 255);
+    border-radius: 5px;
+    padding-left: 5%;
+    padding-right: 5%;
+    margin-bottom: 2.5%;
+}
+
+.comment a{
+    color:azure;
 }

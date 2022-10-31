@@ -12,6 +12,7 @@ class CreatePostSerializer(serializers.ModelSerializer):  # Specifies what needs
 
 class CommentSerializer(serializers.ModelSerializer):
     id = serializers.CharField()
+    author = AuthorSerializer()
     class Meta:
         model = Comment
         fields = ('type', 'author', 'comment', 'contentType', 'published', 'id')

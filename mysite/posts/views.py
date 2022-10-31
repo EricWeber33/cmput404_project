@@ -17,7 +17,7 @@ from .serializer import PostSerializer, CreatePostSerializer, CommentSerializer,
 from .models import Post, Comments, Comment
 from inbox.models import Inbox
 from authors.models import Author
-
+import json
 import uuid
 
 
@@ -165,11 +165,15 @@ class CommentList(APIView):
     def post(self, request, author_id, post_id, format=None):
         # POST [local] if you post an object of “type”:”comment”, it will add your comment to the post whose id is pk
         url = request.build_absolute_uri()
+        data_copy = request.data.copy()
         comments_list = get_object_from_url_or_404(Comments, url)
-        if not CommentSerializer(data=request.data).is_valid():
-            pass
+        if not CommentSerializer(data=data_copy).is_valid():
             return Response('Invalid comment object', status=status.HTTP_400_BAD_REQUEST)
-        comment_single = Comment(author=Author.objects.get(pk=author_id), comment=request.data['comment'], published=request.data['published'], id=request.data['id'])
+        comment_single = Comment(
+            author=Author.objects.get(pk=request.data['author']['id']),
+            comment=request.data['comment'],
+            published=request.data['published'],
+            id=request.data['id'])
         comments_list.comments.add(comment_single)
         comments_list.save()
         comments_serializer = CommentsSerializer(comments_list)
