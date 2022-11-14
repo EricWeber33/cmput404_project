@@ -10,7 +10,7 @@ urlpatterns = [
     path('authors/', views.AuthorList.as_view()),
     re_path('^authors/(?P<pk>.+)/followers/$', views.FollowerList.as_view()),
     re_path('^authors/(?P<author_id>.+)/followers/(?P<foreign_author_id>.+)/$', views.FollowerDetail.as_view()),
-    re_path('(?P<author_id>.*)/sendfollowrequest/$', views.MakeFollowRequest.as_view(), name='follow_request'),
+    re_path('^authors/(?P<author_id>.*)/sendfollowrequest/$', views.MakeFollowRequest.as_view(), name='follow_request'),
     re_path('^authors/(?P<pk>.*)/', views.AuthorDetail.as_view(), name='author_detail'),
 
 ]

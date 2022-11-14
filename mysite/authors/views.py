@@ -122,17 +122,14 @@ class FollowerDetail(APIView):
         except Author.DoesNotExist:
             return Response("Author doesn't exist", status=status.HTTP_404_NOT_FOUND)
 
-        if not request.user.is_authenticated and foreign != Author.objects.get(pk=request.user.author.id):
+        if not request.user.is_authenticated or foreign != Author.objects.get(pk=request.user.author.id):
             return Response("You are not authenticated. Log in first", status=status.HTTP_401_UNAUTHORIZED)
         else:
             followerSet = FollowRequest.objects.all().filter(
                 object=current, actor=foreign)
 
             if len(followerSet) != 0:
-                for follow_request in followerSet:
-                    follow_request.summary = "accepted"
                 foreign.following.add(current)
-
                 return Response(f"{foreign.displayName} is your follower")
 
             else:
@@ -147,17 +144,22 @@ class FollowerDetail(APIView):
         except Author.DoesNotExist:
             return Response("Author doesn't exist", status=status.HTTP_404_NOT_FOUND)
 
-        if not request.user.is_authenticated and current != Author.objects.get(pk=request.user.author.id):
+        if not request.user.is_authenticated or foreign != Author.objects.get(pk=request.user.author.id):
             return Response("You are not authenticated. Log in first", status=status.HTTP_401_UNAUTHORIZED)
 
         else:
-            follow_request = FollowRequest.objects.get(
-                actor=foreign, object=current)
-            follow_request.delete()
+            if current in foreign.following.all():
+                follow_request_set = FollowRequest.objects.all().filter(
+                    object=current, actor=foreign)
+                for follow_request in follow_request_set:
+                    follow_request.delete()
 
-            foreign.following.remove(current)
+                foreign.following.remove(current)
 
-            return Response(f"Unfollowed {current.displayName} successfully")
+                return Response(f"Unfollowed {current.displayName} successfully")
+            
+            else:
+                return Response(f"You do not follow {current.displayName}")
 
 
 def login_view(request):
