@@ -9,8 +9,10 @@ urlpatterns = [
     path('logout/', views.logout_view, name='logout'),
     path('authors/', views.AuthorList.as_view()),
     re_path('^authors/(?P<pk>.+)/followers/$', views.FollowerList.as_view()),
-    re_path('^authors/(?P<pk>.+)/followers/(?P<foreign>.+)/$', views.FollowerList.as_view()),
-    re_path('^authors/(?P<pk>.+)/$', views.AuthorDetail.as_view(), name='author_detail'),
+    re_path('^authors/(?P<author_id>.+)/followers/(?P<foreign_author_id>.+)/$', views.FollowerDetail.as_view()),
+    re_path('(?P<author_id>.*)/sendfollowrequest/$', views.MakeFollowRequest.as_view(), name='follow_request'),
+    re_path('^authors/(?P<pk>.*)/', views.AuthorDetail.as_view(), name='author_detail'),
+
 ]
 
 urlpatterns = format_suffix_patterns(urlpatterns)
