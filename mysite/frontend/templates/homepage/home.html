@@ -19,34 +19,7 @@
             {% endblock %}
             {% for item in items %}
                 {% if item.type == "post" %}
-                    {% block post %}
-                    <div class="inbox_block">
-                        <div class="post_headline">
-                            <div class="title">
-                                <h3>{{ item.title }}</h3>
-                            </div>
-                            <div class="author">
-                                <a href="{{ item.author.url }}"> {{ item.author.displayName }}</a>
-                            </div>
-                        </div>
-                        <div class="post_description">
-                            <h3>{{ item.description }}</h3>
-                        </div>
-                        <p>{{ item.content }}</p>
-                        <form method="post", action="comment_submit/">
-                            {% csrf_token %}
-                            <input type="text" name="comment" placeholder="enter your comment here">
-                            <input type="hidden" name="endpoint" value="{{ item.comments }}">
-                            <button type="submit">Comment</button>
-                        </form>
-                        {% for comment in item.commentsSrc.comments %}
-                        <div class="comment">
-                            <a href="{{ comment.author.url }}"> {{ comment.author.displayName }}</a>
-                            <p>{{comment.comment}}</p>
-                        </div>
-                        {% endfor %}
-                    </div>
-                    {% endblock %}
+                    {% include "./post.html" %}
                 {% endif %}
                 {% if item.type == "comment" %}
                     {% block comment_notif %}

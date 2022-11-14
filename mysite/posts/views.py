@@ -102,6 +102,7 @@ class PostList(APIView):
             description = serializer.data.get('description')
             source = f'{url}{postIDNew}/'
             content = serializer.data.get('content')
+            contentType = serializer.data.get('contentType')
             visibility = serializer.data.get('visibility') #PUBLIC OR FRIENDS
             unlisted = serializer.data.get('unlisted')
             comments = f'{url}{postIDNew}/comments/'
@@ -116,6 +117,7 @@ class PostList(APIView):
                 description=description,
                 source=source,
                 content=content,
+                contentType=contentType,
                 author=author,
                 comments=comments,
                 commentsSrc=commentsSrc,
