@@ -207,7 +207,7 @@ class LikePostList(APIView):
             return Response('Author doesn\'t exist', status=status.HTTP_404_NOT_FOUND)
 
     def post(self, request, author_pk, post_pk):
-
+        # POST a like from the authenticated author on AUTHOR_ID’s post POST_ID
         if request.user.is_authenticated:
 
             author = Author.objects.get(pk=request.user.author.id)
@@ -221,6 +221,7 @@ class LikePostList(APIView):
                 summary=f"{author_display_name} likes your post",
                 url=f"{request.build_absolute_uri('/')}authors/{author_pk}/posts/{post_pk}"
             )
+
             like_post.save()
             like_post_serializer = LikePostSerializer(like_post)
             return Response(like_post_serializer.data)
@@ -246,28 +247,25 @@ class LikeCommentList(APIView):
             return Response('Post doesn\'t exist', status=status.HTTP_404_NOT_FOUND)
 
     def post(self, request, author_pk, post_pk, comment_pk):
-        try:
-            if request.user.is_authenticated:
-                author = request.user
-                author_display_name = request.user.displayName
+        # POST a like from the authenticated author on AUTHOR_ID’s POST_ID's comment COMMENT_ID
 
-                request_copy = request.data.copy()
-                request_copy['object'] = f"{comment_pk}"
-                request_copy['url'] = f"{request.build_absolute_uri('/')}authors/{author_pk}/posts/{post_pk}/comments/{comment_pk}"
-                request_copy['summary'] = f"{author_display_name} likes your comment"
+        if request.user.is_authenticated:
 
-                LikeCommentSerializer = LikeCommentSerializer(
-                    data=request_copy)
-                if LikeCommentSerializer.is_valid():
-                    LikeCommentSerializer.save(author=author)
-                    return Response(LikeCommentSerializer.data)
-                else:
-                    return Response(LikeCommentSerializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            author = Author.objects.get(pk=request.user.author.id)
+            author_display_name = AuthorSerializer(
+                author, many=False).data["displayName"]
 
-        except Author.DoesNotExist:
-            return Response('Author doesn\'t exist', status=status.HTTP_404_NOT_FOUND)
-        except Comment.DoesNotExist:
-            return Response('Comment doesn\'t exist', status=status.HTTP_404_NOT_FOUND)
+            like_comment = LikePost(
+                id=f"{uuid.uuid4()}",
+                object=f"{comment_pk}",
+                author=author,
+                summary=f"{author_display_name} likes your comment",
+                url=f"{request.build_absolute_uri('/')}authors/{author_pk}/posts/{post_pk}/comments/{comment_pk}"
+            )
+
+            like_comment.save()
+            like_comment_serializer = LikeCommentSerializer(like_comment)
+            return Response(like_comment_serializer.data)
 
 
 class AuthorLikesList(APIView):
