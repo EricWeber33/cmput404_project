@@ -22,4 +22,5 @@ urlpatterns = [
     path('', include('posts.urls')),
     path('', include('inbox.urls')),
     path('', include('authors.urls')),
+    path('', include('django.contrib.admindocs.urls')),
 ]
