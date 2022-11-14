@@ -35,8 +35,9 @@ def get_object_from_url_or_404(model, url):
         except model.DoesNotExist:
             raise Http404
 
+
 class PostDetail(APIView):
-    # URL: ://service/authors/{AUTHOR_ID}/posts/{POST_ID} 
+    # URL: ://service/authors/{AUTHOR_ID}/posts/{POST_ID}
     serializer_class = CreatePostSerializer
 
     def get(self, request, author_id, postID, format=None):
@@ -46,7 +47,8 @@ class PostDetail(APIView):
         serializer = PostSerializer(post)
         return Response(serializer.data)
 
-    def post(self, request, author_id, postID, format=None): # WIP (cannot handle an incomplete HTML form)
+    # WIP (cannot handle an incomplete HTML form)
+    def post(self, request, author_id, postID, format=None):
         # POST [local] update the post whose id is pk (must be authenticated)
         serializer = self.serializer_class(data=request.data)
         author = Author.objects.get(pk=author_id)
@@ -58,14 +60,20 @@ class PostDetail(APIView):
             source = serializer.data.get('source')
             content = serializer.data.get('content')
             visibility = serializer.data.get('visibility')
-            unlisted = serializer.data.get('unlisted')     
+            unlisted = serializer.data.get('unlisted')
             # Update Post
-            if title != '' or None: post.title = title
-            if description != ''or None: post.description = description
-            if source != ''or None: post.source = source
-            if content != ''or None: post.content = content
-            if visibility != ''or None: post.visibility = visibility
-            if unlisted != ''or None: post.unlisted = unlisted
+            if title != '' or None:
+                post.title = title
+            if description != '' or None:
+                post.description = description
+            if source != '' or None:
+                post.source = source
+            if content != '' or None:
+                post.content = content
+            if visibility != '' or None:
+                post.visibility = visibility
+            if unlisted != '' or None:
+                post.unlisted = unlisted
             post.save()
             return Response(CreatePostSerializer(post).data, status=200)
         return Response(status=204)
@@ -73,6 +81,7 @@ class PostDetail(APIView):
     def put(self, request, author, pk, format=None):
         # PUT [local] create a post where its id is pk
         pass
+
     def delete(self, request, author_id, postID, format=None):
         # DELETE [local] remove the post whose id is pk
         author = Author.objects.get(pk=author_id)
@@ -80,8 +89,9 @@ class PostDetail(APIView):
         post.delete()
         return Response('Post deleted successfully.', status=200)
 
+
 class PostList(APIView):
-    # URL ://service/authors/{AUTHOR_ID}/posts/ 
+    # URL ://service/authors/{AUTHOR_ID}/posts/
     serializer_class = CreatePostSerializer
 
     def get(self, request, author_id, format=None):
@@ -96,13 +106,13 @@ class PostList(APIView):
         url = request.build_absolute_uri()
         serializer = self.serializer_class(data=request.data)
         author = Author.objects.get(pk=author_id)
-        postIDNew = uuid.uuid4() # create a unique id for the post using the uuid library
-        if serializer.is_valid(): # fetch fields
+        postIDNew = uuid.uuid4()  # create a unique id for the post using the uuid library
+        if serializer.is_valid():  # fetch fields
             title = serializer.data.get('title')
             description = serializer.data.get('description')
             source = f'{url}{postIDNew}/'
             content = serializer.data.get('content')
-            visibility = serializer.data.get('visibility') #PUBLIC OR FRIENDS
+            visibility = serializer.data.get('visibility')  # PUBLIC OR FRIENDS
             unlisted = serializer.data.get('unlisted')
             comments = f'{url}{postIDNew}/comments/'
             commentsSrc = Comments.objects.create(
@@ -133,11 +143,10 @@ class PostList(APIView):
         return Response('Post was unsuccessful. Please check the required information was filled out correctly again.', status=204)
 
 
-
 class ImageDetail(APIView):
-    # URL: ://service/authors/{AUTHOR_ID}/posts/{POST_ID}/image 
+    # URL: ://service/authors/{AUTHOR_ID}/posts/{POST_ID}/image
     def get(self, request, author, pk, format=None):
-        # GET [local, remote] get the public post converted to binary as an image 
+        # GET [local, remote] get the public post converted to binary as an image
         # return 404 if not an image
         pass
 
@@ -153,8 +162,9 @@ class CommentDetail(APIView):
         # POST [local] update a comment
         pass
 
+
 class CommentList(APIView):
-    # URL: ://service/authors/{AUTHOR_ID}/posts/{POST_ID}/comments 
+    # URL: ://service/authors/{AUTHOR_ID}/posts/{POST_ID}/comments
     def get(self, request, author_id, post_id):
         # GET [local, remote] get the list of comments of the post whose id is pk (paginated)
         url = request.build_absolute_uri()
@@ -179,6 +189,7 @@ class CommentList(APIView):
         comments_serializer = CommentsSerializer(comments_list)
         return Response(comments_serializer.data)
 
+
 class LikePostList(APIView):
     # URL: ://service/authors/{AUTHOR_ID}/posts/{POST_ID}/likes
     def get(self, request, author_pk, post_pk):
@@ -194,31 +205,30 @@ class LikePostList(APIView):
             return Response('Post doesn\'t exist', status=status.HTTP_404_NOT_FOUND)
         except Author.DoesNotExist:
             return Response('Author doesn\'t exist', status=status.HTTP_404_NOT_FOUND)
-        
-    
+
     def post(self, request, author_pk, post_pk):
-        try: 
-            author = Author.objects.get(pk=author_pk)
-            author_display_name = AuthorSerializer(author, many=False).data["displayName"]
+        # POST a like from the authenticated author on AUTHOR_ID’s post POST_ID
+        if request.user.is_authenticated:
 
-            request_copy = request.data.copy()
-            request_copy['object'] = f"{post_pk}"
-            request_copy['url'] = f"{request.build_absolute_uri('/')}authors/{author_pk}/posts/{post_pk}"
-            request_copy['summary'] = f"{author_display_name} likes your post"
+            author = Author.objects.get(pk=request.user.author.id)
+            author_display_name = AuthorSerializer(
+                author, many=False).data["displayName"]
 
-            LikePost_Serializer = LikePostSerializer(data=request_copy)
-            if LikePost_Serializer.is_valid():
-                LikePost_Serializer.save(author=author)
-                return Response(LikePost_Serializer.data)
-            else:
-                return Response(LikePost_Serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            like_post = LikePost(
+                id=f"{uuid.uuid4()}",
+                object=f"{post_pk}",
+                author=author,
+                summary=f"{author_display_name} likes your post",
+                url=f"{request.build_absolute_uri('/')}authors/{author_pk}/posts/{post_pk}"
+            )
 
-        except Author.DoesNotExist:
-            return Response('Author doesn\'t exist', status=status.HTTP_404_NOT_FOUND)
+            like_post.save()
+            like_post_serializer = LikePostSerializer(like_post)
+            return Response(like_post_serializer.data)
 
 
 class LikeCommentList(APIView):
-    #URL: ://service/authors/{AUTHOR_ID}/posts/{POST_ID}/comments/{COMMENT_ID}/likes
+    # URL: ://service/authors/{AUTHOR_ID}/posts/{POST_ID}/comments/{COMMENT_ID}/likes
     def get(self, request, author_pk, post_pk, comment_pk):
         try:
             author = Author.objects.get(pk=author_pk)
@@ -228,7 +238,7 @@ class LikeCommentList(APIView):
 
             likesData = LikeCommentSerializer(likes, many=True).data
             return Response(likesData)
-        
+
         except Author.DoesNotExist:
             return Response('Author doesn\'t exist', status=status.HTTP_404_NOT_FOUND)
         except Comment.DoesNotExist:
@@ -237,29 +247,29 @@ class LikeCommentList(APIView):
             return Response('Post doesn\'t exist', status=status.HTTP_404_NOT_FOUND)
 
     def post(self, request, author_pk, post_pk, comment_pk):
-        try:
-            author = Author.objects.get(pk=author_pk)
-            author_display_name = AuthorSerializer(author, many=False).data["displayName"]
+        # POST a like from the authenticated author on AUTHOR_ID’s POST_ID's comment COMMENT_ID
 
-            request_copy = request.data.copy()
-            request_copy['object'] = f"{comment_pk}"
-            request_copy['url'] = f"{request.build_absolute_uri('/')}authors/{author_pk}/posts/{post_pk}/comments/{comment_pk}"
-            request_copy['summary'] = f"{author_display_name} likes your comment"
+        if request.user.is_authenticated:
 
-            LikeCommentSerializer = LikeCommentSerializer(data=request_copy)
-            if LikeCommentSerializer.is_valid():
-                LikeCommentSerializer.save(author=author)
-                return Response(LikeCommentSerializer.data)
-            else:
-                return Response(LikeCommentSerializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            author = Author.objects.get(pk=request.user.author.id)
+            author_display_name = AuthorSerializer(
+                author, many=False).data["displayName"]
 
-        except Author.DoesNotExist:
-            return Response('Author doesn\'t exist', status=status.HTTP_404_NOT_FOUND)
-        except Comment.DoesNotExist:
-            return Response('Comment doesn\'t exist', status=status.HTTP_404_NOT_FOUND)
+            like_comment = LikePost(
+                id=f"{uuid.uuid4()}",
+                object=f"{comment_pk}",
+                author=author,
+                summary=f"{author_display_name} likes your comment",
+                url=f"{request.build_absolute_uri('/')}authors/{author_pk}/posts/{post_pk}/comments/{comment_pk}"
+            )
+
+            like_comment.save()
+            like_comment_serializer = LikeCommentSerializer(like_comment)
+            return Response(like_comment_serializer.data)
+
 
 class AuthorLikesList(APIView):
-    #URL: ://service/authors/{AUTHOR_ID}/liked
+    # URL: ://service/authors/{AUTHOR_ID}/liked
     def get(self, request, author_pk):
         try:
             author = Author.objects.get(pk=author_pk)
@@ -268,13 +278,13 @@ class AuthorLikesList(APIView):
             post_likes_data = LikePostSerializer(post_likes, many=True).data
 
             comment_likes = LikeComment.objects.all().filter(author=author)
-            comment_likes_data = LikeCommentSerializer(comment_likes, many=True).data
+            comment_likes_data = LikeCommentSerializer(
+                comment_likes, many=True).data
 
-            finalData = {"type": "liked", "items": post_likes_data + comment_likes_data}
+            finalData = {"type": "liked",
+                         "items": post_likes_data + comment_likes_data}
 
             return Response(finalData)
-            
+
         except Author.DoesNotExist:
             return Response('Author doesn\'t exist', status=status.HTTP_404_NOT_FOUND)
-
-
