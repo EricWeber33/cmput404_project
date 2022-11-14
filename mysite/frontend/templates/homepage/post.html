@@ -13,6 +13,10 @@
     </div>
     {% if item.contentType == 'text/markdown' %}
         <p>{{ item.content |safe }}</p>
+    {% elif item.contentType == 'image/png;base64' %}
+        <img src="{{ item.content }}"/>
+    {% elif item.contentType == 'image/jpeg;base64' %}
+        <img src="{{ item.content }}"/>
     {% else %}
         <p>{{item.content}}</p>
     {% endif %}

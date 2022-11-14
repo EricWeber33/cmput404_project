@@ -138,10 +138,14 @@ class PostList(APIView):
 
 class ImageDetail(APIView):
     # URL: ://service/authors/{AUTHOR_ID}/posts/{POST_ID}/image 
-    def get(self, request, author, pk, format=None):
+    def get(self, request, author_id, postID, format=None):
         # GET [local, remote] get the public post converted to binary as an image 
         # return 404 if not an image
-        pass
+        author = Author.objects.get(pk=author_id)
+        post = get_object_or_404(Post, pk=postID, author=author)
+        if post.contentType not in [Post.JPEG, Post.PNG]:
+            return Response(status=404)
+        return Response(post.content)
 
 
 class CommentDetail(APIView):

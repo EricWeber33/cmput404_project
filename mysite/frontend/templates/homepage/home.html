@@ -10,7 +10,7 @@
         <div>
             {% block post_form %}
             <h2>Make a Post</h2>
-            <form method="post" action="post_submit/">
+            <form method="post" action="post_submit/" enctype="multipart/form-data">
                 {% csrf_token %}
                 {{ post_form.as_p }}
                 <button type="submit">Post</button>
