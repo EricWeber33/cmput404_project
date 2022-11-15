@@ -60,6 +60,7 @@ class FollowerList(APIView):
 
     def get(self, request, pk, format=None):
         # GET [local, remote]: get a list of authors who are AUTHOR_ID’s followers
+
         followers = Author.objects.filter(following__id__in=[pk])
         serializer = AuthorSerializer(followers, many=True)
         return Response({"type": "followers", "items": serializer.data})
@@ -71,13 +72,15 @@ class MakeFollowRequest(APIView):
             
             if not request.user.is_authenticated:
                 return Response("You are not authenticated. Log in first", status=status.HTTP_401_UNAUTHORIZED)
+
             else:
+
                 try:
                     object_author = Author.objects.get(pk=author_id)
                     author = Author.objects.get(pk=request.user.author.id)
 
-                    if author.displayName == object_author.displayName:
-                        return Response("You cannot follow yourself!", status=status.HTTP_400_BAD_REQUEST)
+                    if author == object_author:
+                        return Response("You cannot follow yourself!", status=status.HTTP_403_FORBIDDEN)
 
                     else:
                         follow_request = FollowRequest.objects.create(
@@ -89,7 +92,10 @@ class MakeFollowRequest(APIView):
 
                         follow_serializer = FollowRequestSerializer(follow_request)
 
-                        # TODO: send the request to objects inbox
+                        #send the request to object authors inbox
+                        object_author_inbox = Inbox.objects.get(author=object_author.url)
+                        object_author_inbox.items.insert(0, follow_serializer.data)
+                        object_author_inbox.save()
                         
                         return Response(follow_serializer.data)
 
@@ -122,15 +128,17 @@ class FollowerDetail(APIView):
         except Author.DoesNotExist:
             return Response("Author doesn't exist", status=status.HTTP_404_NOT_FOUND)
 
-        if not request.user.is_authenticated or foreign != Author.objects.get(pk=request.user.author.id):
-            return Response("You are not authenticated. Log in first", status=status.HTTP_401_UNAUTHORIZED)
+        #only authenticated users can approve their own follow requests
+        if not request.user.is_authenticated or current != Author.objects.get(pk=request.user.author.id):
+            return Response("You are not allowed to perform this action.", status=status.HTTP_401_UNAUTHORIZED)
         else:
             followerSet = FollowRequest.objects.all().filter(
                 object=current, actor=foreign)
 
+            #check if a follow request exists to approve, else do not add follower
             if len(followerSet) != 0:
                 foreign.following.add(current)
-                return Response(f"{foreign.displayName} is your follower")
+                return Response(f"Success. {foreign.displayName} follows you.")
 
             else:
                 return Response(f"Follow request from {foreign.displayName} doesn't exist", status=status.HTTP_404_NOT_FOUND)
@@ -144,10 +152,8 @@ class FollowerDetail(APIView):
         except Author.DoesNotExist:
             return Response("Author doesn't exist", status=status.HTTP_404_NOT_FOUND)
 
-        if not request.user.is_authenticated or foreign != Author.objects.get(pk=request.user.author.id):
-            return Response("You are not authenticated. Log in first", status=status.HTTP_401_UNAUTHORIZED)
-
-        else:
+        #only an authenticated author can delete their own follower or unfollow another author
+        if foreign == Author.objects.get(pk=request.user.author.id) or current == Author.objects.get(pk=request.user.author.id) and request.user.is_authenticated:
             if current in foreign.following.all():
                 follow_request_set = FollowRequest.objects.all().filter(
                     object=current, actor=foreign)
@@ -156,10 +162,13 @@ class FollowerDetail(APIView):
 
                 foreign.following.remove(current)
 
-                return Response(f"Unfollowed {current.displayName} successfully")
+                return Response(f"{foreign.displayName} unfollowed {current.displayName} successfully")
             
             else:
-                return Response(f"You do not follow {current.displayName}")
+                return Response(f"Cannot perform this action. {foreign.displayName} does not follow {current.displayName}")
+        
+        else:
+            return Response("You are not allowed to perform this action.", status=status.HTTP_401_UNAUTHORIZED)
 
 
 def login_view(request):
