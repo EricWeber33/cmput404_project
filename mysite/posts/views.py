@@ -62,17 +62,17 @@ class PostDetail(APIView):
             visibility = serializer.data.get('visibility')
             unlisted = serializer.data.get('unlisted')
             # Update Post
-            if title != '' or None:
+            if title != '' and title is not None:
                 post.title = title
-            if description != '' or None:
+            if description != '' and description is not None:
                 post.description = description
-            if source != '' or None:
+            if source != '' and source is not None:
                 post.source = source
-            if content != '' or None:
+            if content != '' and content is not None:
                 post.content = content
-            if visibility != '' or None:
+            if visibility != '' and visibility is not None:
                 post.visibility = visibility
-            if unlisted != '' or None:
+            if unlisted != '' and unlisted is not None:
                 post.unlisted = unlisted
             post.save()
             return Response(CreatePostSerializer(post).data, status=200)
@@ -112,7 +112,8 @@ class PostList(APIView):
             description = serializer.data.get('description')
             source = f'{url}{postIDNew}/'
             content = serializer.data.get('content')
-            visibility = serializer.data.get('visibility')  # PUBLIC OR FRIENDS
+            contentType = serializer.data.get('contentType')
+            visibility = serializer.data.get('visibility') #PUBLIC OR FRIENDS
             unlisted = serializer.data.get('unlisted')
             comments = f'{url}{postIDNew}/comments/'
             commentsSrc = Comments.objects.create(
@@ -126,6 +127,7 @@ class PostList(APIView):
                 description=description,
                 source=source,
                 content=content,
+                contentType=contentType,
                 author=author,
                 comments=comments,
                 commentsSrc=commentsSrc,
@@ -144,11 +146,15 @@ class PostList(APIView):
 
 
 class ImageDetail(APIView):
-    # URL: ://service/authors/{AUTHOR_ID}/posts/{POST_ID}/image
-    def get(self, request, author, pk, format=None):
-        # GET [local, remote] get the public post converted to binary as an image
+    # URL: ://service/authors/{AUTHOR_ID}/posts/{POST_ID}/image 
+    def get(self, request, author_id, postID, format=None):
+        # GET [local, remote] get the public post converted to binary as an image 
         # return 404 if not an image
-        pass
+        author = Author.objects.get(pk=author_id)
+        post = get_object_or_404(Post, pk=postID, author=author)
+        if post.contentType not in [Post.JPEG, Post.PNG]:
+            return Response(status=404)
+        return Response(post.content)
 
 
 class CommentDetail(APIView):
