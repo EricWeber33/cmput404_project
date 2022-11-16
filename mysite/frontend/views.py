@@ -72,12 +72,18 @@ def post_submit(request, pk):
                 "visibility": visibility,
                 "unlisted": False
             }
-            client = requests.Session()
-            cookies = {
-                'sessionid': request.session.session_key,
-                'csrftoken': get_token(request)
+            with requests.Session() as client:
+                client.headers.update(request.headers)
+                client.headers.update({
+                    'Content-Type': None,
+                    'Content-Length': None,
+                    'Cookie': None
+                })
+                cookies = {
+                    'sessionid': request.session.session_key,
+                    'csrftoken': get_token(request)
                 }
-            client.post(post_endpoint, cookies=cookies, data=post_data)
+                client.post(post_endpoint, cookies=cookies, data=post_data)
     return HttpResponseRedirect(home_url)
         
 @permission_classes(IsAuthenticated,)
