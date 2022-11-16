@@ -11,7 +11,19 @@ from .serializers import InboxSerializer
 from posts.serializer import PostSerializer, CommentSerializer
 # Create your views here.
 def get_object_from_url_or_404(model, url):
-    """attempts to return a db item using a url as primary key"""
+    '''
+    Description:
+    Attempts to return an item from the db using a url as the primary key
+
+    Params:
+    model: model
+        Model object
+    url: String
+        Url to specific location
+    
+    Returns:
+    Either teturns the item if found otherwise if not found raise Http404
+    '''
     try:
         return model.objects.get(pk=url)
     except model.DoesNotExist:
@@ -29,14 +41,36 @@ class InboxView(APIView):
     
     # URL:://service/authors/{AUTHOR_ID}/inbox
     def get(self, request, pk, format=None):
-        """GET [local]: if authenticated get a list of posts sent to AUTHOR_ID (paginated)"""
+        '''
+        Description:
+        Get a list of posts sent to authors inbox
+
+        Params:
+        request: request
+        pk: String 
+            pk of an Author
+
+        Returns:
+        Inbox which contains posts
+        '''
         url = request.build_absolute_uri().split('inbox')[0]
         inbox = get_object_from_url_or_404(Inbox, url)
         serializer = InboxSerializer(inbox)
         return Response(serializer.data)
 
     def post(self, request, pk, format=None):
-        """POST [local, remote]: send a post to the author"""
+        '''
+        Description:
+        Send a post to authors inbox
+
+        Params:
+        request: request
+        pk: String 
+            pk of an Author
+
+        Returns:
+        Response which has post added to the inbox
+        '''
         url = request.build_absolute_uri().split('inbox')[0]
         inbox = get_object_from_url_or_404(Inbox, url)
         try:
@@ -61,7 +95,18 @@ class InboxView(APIView):
         return Response(inbox_serializer.data)
 
     def delete(self, request, pk):
-        """DELETE [local]: clear the inbox"""
+        '''
+        Description:
+        Clears inbox of all items
+
+        Params:
+        request: request
+        pk: String 
+            pk of an Author
+
+        Returns:
+        Response with inbox that has been cleared
+        '''
         url = request.build_absolute_uri().split('inbox')[0]
         inbox = get_object_from_url_or_404(Inbox, url)
         inbox.items.clear()

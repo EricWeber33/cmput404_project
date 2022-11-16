@@ -24,8 +24,17 @@ class AuthorList(APIView):
     permission_classes = (IsAuthenticated,)
     # URL: ://service/authors/ 
     def get(self, request, format=None):
+        '''
+        Description:
+        Gets all profiles on the server
+
+        Params:
+        request: request
+
+        Returns:
+        Response containing all profiles
+        '''
         print(request.user)
-        # GET [local, remote]: retrieve all profiles on the server (paginated) 
         authors = Author.objects.all()
         serializer = AuthorSerializer(authors, many=True)
         return Response(serializer.data)
@@ -34,13 +43,35 @@ class AuthorDetail(APIView):
     permission_classes = (IsAuthenticated,)
     # URL: ://service/authors/{AUTHOR_ID}/ 
     def get_object(self, pk):
+        '''
+        Description:
+        Attempts to get an author
+
+        Params:
+        pk: String 
+            pk of an Author
+
+        Returns:
+        Returns an author but if not found then raise 404
+        '''
         try:
             return Author.objects.get(pk=pk)
         except Author.DoesNotExist:
             raise Http404
 
     def get(self, request, pk, format=None):
-        # GET [local, remote]: retrieve AUTHOR_ID’s profile
+        '''
+        Description: 
+        Gets an author
+
+        Params:
+        request: request
+        pk: String 
+            pk of an Author
+
+        Returns:
+        Returns response containing author (if it was found)
+        '''
         author = self.get_object(pk)
         serializer = AuthorSerializer(author)
         return Response(serializer.data)
@@ -53,7 +84,18 @@ class FollowerList(APIView):
     permission_classes = (IsAuthenticated,)
     # URL: ://service/authors/{AUTHOR_ID}/followers 
     def get(self, request, pk, format=None):
-        # GET [local, remote]: get a list of authors who are AUTHOR_ID’s followers
+        '''
+        Description:
+        Get a list of authors who are following an author
+
+        Params:
+        request: request
+        pk: String 
+            pk of an Author
+
+        Returns:
+        Returns response containing the followers
+        '''
         followers = Author.objects.filter(following__id__in=[pk])
         serializer = AuthorSerializer(followers, many=True)
         return Response({"type":"followers","items":serializer.data})
@@ -73,6 +115,16 @@ class FollowerDetail(APIView):
         pass
 
 def login_view(request):
+    '''
+    Description:
+    Attempts to log a user in
+
+    Params:
+        request: request
+
+    Returns:
+    A render for login
+    '''
     if request.method == 'POST':
         form = LoginForm(request.POST)
         if form.is_valid():
@@ -94,6 +146,16 @@ def login_view(request):
     return render(request, 'registration/login.html', {'form': form})
 
 def register_view(request):
+    '''
+    Description:
+    Upon registration creates a user and it's associated objects
+
+    Params:
+        request: request
+
+    Returns:
+    A render for registration
+    '''
     if request.method == 'POST':
         form = RegisterForm(request.POST)
         if form.is_valid():
@@ -130,5 +192,15 @@ def register_view(request):
     return render(request, 'registration/register.html', {'form': form})
 
 def logout_view(request):
+    '''
+    Description:
+    Logs user out
+
+    Params:
+        request: request
+
+    Return:
+    User brought back to inital login page
+    '''
     logout(request)
     return HttpResponseRedirect('/login/')
