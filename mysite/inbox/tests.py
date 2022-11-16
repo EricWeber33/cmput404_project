@@ -1,9 +1,8 @@
-from tkinter import END
 from django.urls import resolve
 from authors.models import Author
-from posts.serializer import CommentSerializer, CommentsSerializer, PostSerializer, LikePostSerializer
+from posts.serializer import CommentSerializer, CommentsSerializer, PostSerializer
 from rest_framework.test import APITestCase
-from posts.models import Comment, Comments, Post, LikePost
+from posts.models import Comment, Comments, Post
 from django.contrib.auth.models import User
 from .models import Inbox
 import json

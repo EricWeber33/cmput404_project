@@ -9,7 +9,7 @@ import json
 
 from .models import Inbox
 from .serializers import InboxSerializer
-from posts.serializer import PostSerializer, CommentSerializer, LikePostSerializer
+from posts.serializer import PostSerializer, CommentSerializer, LikeSerializer
 # Create your views here.
 def get_object_from_url_or_404(model, url):
     '''
