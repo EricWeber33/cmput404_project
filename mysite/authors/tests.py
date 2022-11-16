@@ -85,6 +85,11 @@ class FollowTest(TestCase):
         self.apiClient.logout()
         self.apiClient.force_login(self.user2)
 
+        #test follow request is sent to the top of the object authors inbox
+        response = self.apiClient.get(f'{HOST}/authors/2/inbox/')
+        inbox_items = decode_bytes(response.content).get('items')
+        self.assertEqual(inbox_items[0].get("summary"), "test user 1 wants to follow test user 2")
+
         #test accepting a follow request
         response = self.apiClient.put(f'{HOST}/authors/2/followers/1/')
         self.assertEqual(decode_bytes(response.content), "Success. test user 1 follows you.")

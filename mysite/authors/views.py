@@ -91,7 +91,6 @@ class FollowerList(APIView):
     # URL: ://service/authors/{AUTHOR_ID}/followers
 
     def get(self, request, pk, format=None):
-
         '''
         Description:
         Get a list of authors who are following an author
@@ -113,44 +112,68 @@ class FollowerList(APIView):
 class MakeFollowRequest(APIView):
 
     def post(self, request, author_id):
-            
-            if not request.user.is_authenticated:
-                return Response("You are not authenticated. Log in first", status=status.HTTP_401_UNAUTHORIZED)
 
-            else:
+        '''
+        Description:
+        Creates a follow request from the authenticated author to another author.
 
-                try:
-                    object_author = Author.objects.get(pk=author_id)
-                    author = Author.objects.get(pk=request.user.author.id)
+        Params:
+        request: request
+        author_id: String 
 
-                    if author == object_author:
-                        return Response("You cannot follow yourself!", status=status.HTTP_403_FORBIDDEN)
+        Returns:
+        Returns response containing if the follow request was successfully created. 
+        '''
 
-                    else:
-                        follow_request = FollowRequest.objects.create(
-                            summary= f"{author.displayName} wants to follow {object_author.displayName}",
-                            actor= author,
-                            object= object_author
-                        )
-                        follow_request.save()
+        if not request.user.is_authenticated:
+            return Response("You are not authenticated. Log in first", status=status.HTTP_401_UNAUTHORIZED)
 
-                        follow_serializer = FollowRequestSerializer(follow_request)
+        else:
 
-                        #send the request to object authors inbox
-                        object_author_inbox = Inbox.objects.get(author=object_author.url)
-                        object_author_inbox.items.insert(0, follow_serializer.data)
-                        object_author_inbox.save()
-                        
-                        return Response(follow_serializer.data)
+            try:
+                object_author = Author.objects.get(pk=author_id)
+                author = Author.objects.get(pk=request.user.author.id)
 
-                except Author.DoesNotExist:
-                    return Response("The author you are trying to follow does not exist!", status=status.HTTP_400_BAD_REQUEST)
+                if author == object_author:
+                    return Response("You cannot follow yourself!", status=status.HTTP_403_FORBIDDEN)
+
+                else:
+                    follow_request = FollowRequest.objects.create(
+                        summary=f"{author.displayName} wants to follow {object_author.displayName}",
+                        actor=author,
+                        object=object_author
+                    )
+                    follow_request.save()
+
+                    follow_serializer = FollowRequestSerializer(follow_request)
+
+                    # send the request to object authors inbox
+                    object_author_inbox = Inbox.objects.get(
+                        author=object_author.url)
+                    object_author_inbox.items.insert(0, follow_serializer.data)
+                    object_author_inbox.save()
+
+                    return Response(follow_serializer.data)
+
+            except Author.DoesNotExist:
+                return Response("The author you are trying to follow does not exist!", status=status.HTTP_400_BAD_REQUEST)
 
 
 class FollowerDetail(APIView):
     # URL: ://service/authors/{AUTHOR_ID}/followers/{FOREIGN_AUTHOR_ID}
     def get(self, request, author_id, foreign_author_id):
-        # GET [local, remote] check if FOREIGN_AUTHOR_ID is a follower of AUTHOR_ID
+        '''
+        Description:
+        Checks if a foreign author is a following an author
+
+        Params:
+        request: request
+        author_id: String
+        foreign_author_id: String   
+
+        Returns:
+        Returns response containing if the foreign author follows the author or not, or HTTP_404_NOT_FOUND if either author do not exist
+        '''
 
         try:
             current = Author.objects.get(pk=author_id)
@@ -164,22 +187,32 @@ class FollowerDetail(APIView):
             return Response(f"{foreign.displayName} does not follow {current.displayName}")
 
     def put(self, request, author_id, foreign_author_id):
-        # PUT [local]: Add FOREIGN_AUTHOR_ID as a follower of AUTHOR_ID (must be authenticated)
+        '''
+        Description:
+        Adds a foreign author as a follower of an author, who must be authenticated.
 
+        Params:
+        request: request
+        author_id: String
+        foreign_author_id: String   
+
+        Returns:
+        Returns response containing if the follower was successfully added. 
+        '''
         try:
             current = Author.objects.get(pk=author_id)
             foreign = Author.objects.get(pk=foreign_author_id)
         except Author.DoesNotExist:
             return Response("Author doesn't exist", status=status.HTTP_404_NOT_FOUND)
 
-        #only authenticated users can approve their own follow requests
+        # only authenticated users can approve their own follow requests
         if not request.user.is_authenticated or current != Author.objects.get(pk=request.user.author.id):
             return Response("You are not allowed to perform this action.", status=status.HTTP_401_UNAUTHORIZED)
         else:
             followerSet = FollowRequest.objects.all().filter(
                 object=current, actor=foreign)
 
-            #check if a follow request exists to approve, else do not add follower
+            # check if a follow request exists to approve, else do not add follower
             if len(followerSet) != 0:
                 foreign.following.add(current)
                 return Response(f"Success. {foreign.displayName} follows you.")
@@ -189,6 +222,18 @@ class FollowerDetail(APIView):
 
     def delete(self, request, author_id, foreign_author_id):
         # DELETE [local]: remove FOREIGN_AUTHOR_ID as a follower of AUTHOR_ID
+        '''
+        Description:
+        Deletes a foreign author as a follower of an author. Either author must be authenticated.
+
+        Params:
+        request: request
+        author_id: String
+        foreign_author_id: String   
+
+        Returns:
+        Returns response if the follower was successfully deleted. 
+        '''
 
         try:
             current = Author.objects.get(pk=author_id)
@@ -196,7 +241,7 @@ class FollowerDetail(APIView):
         except Author.DoesNotExist:
             return Response("Author doesn't exist", status=status.HTTP_404_NOT_FOUND)
 
-        #only an authenticated author can delete their own follower or unfollow another author
+        # only an authenticated author can delete their own follower or unfollow another author
         if foreign == Author.objects.get(pk=request.user.author.id) or current == Author.objects.get(pk=request.user.author.id) and request.user.is_authenticated:
             if current in foreign.following.all():
                 follow_request_set = FollowRequest.objects.all().filter(
@@ -207,10 +252,10 @@ class FollowerDetail(APIView):
                 foreign.following.remove(current)
 
                 return Response(f"{foreign.displayName} unfollowed {current.displayName} successfully")
-            
+
             else:
                 return Response(f"Cannot perform this action. {foreign.displayName} does not follow {current.displayName}")
-        
+
         else:
             return Response("You are not allowed to perform this action.", status=status.HTTP_401_UNAUTHORIZED)
 
