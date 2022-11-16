@@ -7,7 +7,7 @@ from .models import LikePost, LikeComment, Post, Comment, Comments
 class CreatePostSerializer(serializers.ModelSerializer):  # Specifies what needs to be given in the creation of a Post
     class Meta:
         model = Post
-        fields = ('title', 'description', 'source', 'content',
+        fields = ('title', 'description', 'source', 'content', 'contentType',
             'visibility', 'unlisted')
 
 class CommentSerializer(serializers.ModelSerializer):

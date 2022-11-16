@@ -33,11 +33,11 @@ class Post(models.Model):
     PNG = 'image/png;base64'
     JPEG = 'image/jpeg;base64'
     CONTENT_TYPES = [
-        (MARKDOWN, 'text/markdown'),
-        (PLAIN, 'text/plain'),
+        (MARKDOWN, 'markdown'),
+        (PLAIN, 'plain text'),
         (BASE64, 'application/base64'),
-        (PNG, 'image/png;base64'),
-        (JPEG, 'image/jpeg;base64'),
+        (PNG, 'png'),
+        (JPEG, 'jpeg'),
     ]
 
     # Visibility options

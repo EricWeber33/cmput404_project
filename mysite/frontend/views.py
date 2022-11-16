@@ -5,6 +5,7 @@ from django.http import HttpResponseRedirect, Http404
 from django.middleware.csrf import get_token
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.decorators import permission_classes
+from PIL import Image
 from inbox.models import Inbox
 from authors.models import Author
 from authors.serializer import AuthorSerializer
@@ -15,6 +16,9 @@ import uuid
 import datetime
 import requests 
 import json
+import commonmark
+import base64
+from io import BytesIO
 
 def get_object_from_url(model, url):
     """attempts to return a db item using a url as primary key"""
@@ -36,18 +40,34 @@ def post_submit(request, pk):
     home_url = url.split('/home/')[0] + "/home/"
     post_endpoint = url.split('/home/')[0] + "/posts/"
     if request.method == 'POST':
-        form = PostForm(request.POST)
+        form = PostForm(request.POST, request.FILES)
         if form.is_valid():
             title = form.cleaned_data.pop('title')
             description = form.cleaned_data.pop('description')
             content = form.cleaned_data.pop('content')
             content_type = form.cleaned_data.pop('content_type')
             visibility = form.cleaned_data.pop('visibility')
+            image = form.cleaned_data.pop('image')
+            if image is not None:
+                image = Image.open(image)
+                buffer = BytesIO()
+                file_type = 'png'
+                if content_type == Post.JPEG:
+                    file_type = 'JPEG'
+                elif content_type == Post.PNG:
+                    file_type = 'PNG'
+                else:
+                    # supplied an image but didn't say the content type was an image
+                    # should this throw an error?
+                    pass
+                image.save(buffer, format=file_type) # write the image data to the buffer so it can be encoded
+                content = 'data:'+ content_type + ',' + base64.b64encode(buffer.getvalue()).decode('utf-8')
             post_data = {
                 "csrfmiddlewaretoken": get_token(request),
                 "title": title,
                 "description": description,
                 "content": content, 
+                "contentType": content_type,
                 "source": "",
                 "visibility": visibility,
                 "unlisted": False
@@ -119,6 +139,8 @@ def homepage_view(request, pk):
             try:
                 post = Post.objects.get(pk=inbox.items[i]['id'])
                 inbox.items[i] = PostSerializer(post).data
+                if inbox.items[i]['contentType'] == 'text/markdown':
+                    inbox.items[i]['content'] = commonmark.commonmark(inbox.items[i]['content'])
             except Post.DoesNotExist:
                 removal_list.append(i)
         elif inbox.items[i]['type'] == "comment":
