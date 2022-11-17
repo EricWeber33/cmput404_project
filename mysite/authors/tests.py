@@ -41,7 +41,7 @@ class FollowTest(TestCase):
             user = self.user1
         )
 
-        Author.objects.create(
+        self.author2 = Author.objects.create(
             id="2", 
             url=f'{HOST}/authors/2',
             host=HOST,
@@ -76,7 +76,7 @@ class FollowTest(TestCase):
 
         dict = response.data
         self.assertEqual("test user 1 wants to follow test user 2", dict.get('summary'))
-        self.assertEqual('2', dict.get('object'))
+        self.assertEqual(AuthorSerializer(self.author2).data, dict.get('object'))
         
         #test authors can only add their own followers/accept their own follow requests
         response = self.apiClient.put(f'{HOST}/authors/2/followers/1/')
