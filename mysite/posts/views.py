@@ -197,7 +197,19 @@ class PostList(APIView):
                     inbox.items.insert(0, PostSerializer(post).data)
                     inbox.save()
             if visibility == 'FRIENDS':
-                pass
+                followers = Author.objects.filter(following__id__in=[author_id]).values_list('id', flat=True)
+                # Add post to authors own inbox
+                url = request.build_absolute_uri().split("posts")[0]
+                inbox = get_object_from_url_or_404(Inbox, url)
+                inbox.items.insert(0, PostSerializer(post).data)
+                inbox.save()
+                # Add post to the inbox of everyone who follows the author
+                for follower in followers:
+                        url = request.build_absolute_uri().split(author_id)[0]
+                        url += follower + "/"
+                        inbox = get_object_from_url_or_404(Inbox, url)
+                        inbox.items.insert(0, PostSerializer(post).data)
+                        inbox.save()
             return Response(PostSerializer(post).data, status=200)
         return Response('Post was unsuccessful. Please check the required information was filled out correctly again.', status=204)
 
