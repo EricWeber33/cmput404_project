@@ -3,12 +3,13 @@ from rest_framework import status
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
+import commonmark
 
 import json
 
 from .models import Inbox
 from .serializers import InboxSerializer
-from posts.serializer import PostSerializer, CommentSerializer
+from posts.serializer import PostSerializer, CommentSerializer, LikeSerializer
 # Create your views here.
 def get_object_from_url_or_404(model, url):
     '''
@@ -38,7 +39,6 @@ def get_object_from_url_or_404(model, url):
         
 class InboxView(APIView):
     permission_classes = (IsAuthenticated,)
-    
     # URL:://service/authors/{AUTHOR_ID}/inbox
     def get(self, request, pk, format=None):
         '''
@@ -53,10 +53,30 @@ class InboxView(APIView):
         Returns:
         Inbox which contains posts
         '''
+
+        if paginated := 'page' in request.GET.keys():
+            page = request.GET.get('page')
+            page_size = request.GET.get('size') or 5
+            try:
+                page = int(page)
+                page_size = int(page_size)
+                assert page > 0
+                assert page_size > 0
+            except Exception:
+                return Response("Bad query", status.HTTP_400_BAD_REQUEST)
         url = request.build_absolute_uri().split('inbox')[0]
         inbox = get_object_from_url_or_404(Inbox, url)
         serializer = InboxSerializer(inbox)
-        return Response(serializer.data)
+        data = serializer.data
+        if paginated:
+            try:
+                page_index = (page-1)*page_size
+                last_index = min(page_index+page_size, len(data['items']))
+                data['items'] = data['items'][page_index:last_index]
+                return Response(data)
+            except Exception:
+                raise Http404
+        return Response(data)
 
     def post(self, request, pk, format=None):
         '''

@@ -1,4 +1,3 @@
-from tkinter import END
 from django.urls import resolve
 from authors.models import Author
 from posts.serializer import CommentSerializer, CommentsSerializer, PostSerializer
@@ -16,6 +15,7 @@ URL = f'{HOST}/authors/{ID}'
 POST_URL = f'{URL}/posts/{ID}/'
 COMMENTS_URL = f'{POST_URL}comments/'
 COMMENT_URL = f'{COMMENTS_URL}{ID}'
+ENDPOINT = f'/authors/{ID}/inbox/'
 
 class InboxTest(APITestCase):
     
@@ -67,11 +67,30 @@ class InboxTest(APITestCase):
         self.assertEqual(result.data['author'], URL)
         self.assertIn('items', result.data.keys())
 
+    def test_get_pagination(self):
+        stub_item = json.dumps({"type":"post","content":"test content"})
+        stub_item2 = json.dumps({"type":"post","content":"test content 2"})
+        stub_item3 = json.dumps({"type":"post","content":"test content 3"})
+        stub_items = [stub_item3, stub_item2, stub_item]
+        for item in stub_items:
+            self.inbox.items.insert(0, item)
+        self.inbox.save()
+        try:
+            # test 400 for bad query
+            result = self.client.get(ENDPOINT, QUERY_STRING="page=foo&size=bar")
+            self.assertEqual(result.status_code, 400)
+            # test pagination returns proper items
+            result = self.client.get(ENDPOINT, QUERY_STRING="page=1&size=2")
+            self.assertEqual(result.status_code, 200)
+            self.assertEqual(len(result.data['items']), 2)
+            self.assertEqual(result.data['items'], [stub_item, stub_item2])
+            result = self.client.get(ENDPOINT, QUERY_STRING="page=2&size=2")
+            self.assertEqual(result.status_code, 200)
+            self.assertEqual(result.data['items'], [stub_item3])
+        finally:
+            result = self.client.delete(ENDPOINT)
 
     def test_post_inbox(self):
-        
-        ENDPOINT = f'/authors/{ID}/inbox/'
-
         # test unknown type
         result = self.client.post(ENDPOINT, {})
         self.assertEqual(result.status_code, 400)
@@ -87,7 +106,9 @@ class InboxTest(APITestCase):
         # test malformed follow request
 
         # test malformed like 
-
+        #result = self.client.post(ENDPOINT,{"type":"like","foo":"bar"})
+        #self.assertEqual(result.status_code, 400)
+        #self.assertEqual(result.data, "Invalid like object")
         # test posting of post object
         post_post_request = PostSerializer(self.post).data
         post_post_request['commentsSrc'] = CommentsSerializer(self.comments).data
@@ -103,7 +124,10 @@ class InboxTest(APITestCase):
         # test posting of follow request
 
         # test posting of like
-
+        #post_like_request = LikePostSerializer(self.like).data
+        #result = self.client.post(ENDPOINT, data=post_comment_request, format='json')
+        #self.assertEqual(result.status_code, 200)
+        #self.assertEqual(result.data['items'][0], post_comment_request)
         # test ordering of inbox
         # expected inbox.items is [like, follow, comment, post]
         self.assertEqual(result.data['items'], [post_comment_request, post_post_request])

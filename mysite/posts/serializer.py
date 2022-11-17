@@ -1,7 +1,7 @@
 from django.forms import CharField
 from rest_framework import serializers
 from authors.serializer import AuthorSerializer
-from .models import LikePost, LikeComment, Post, Comment, Comments
+from .models import Like, Post, Comment, Comments
 
 
 class CreatePostSerializer(serializers.ModelSerializer):  # Specifies what needs to be given in the creation of a Post
@@ -34,26 +34,15 @@ class PostSerializer(serializers.ModelSerializer):
         fields = ('type', 'title', 'id', 'source', 'origin', 'description', 'contentType', 'content', 
             'author', 'categories', 'count', 'comments', 'commentsSrc', 'published', 'visibility', 'unlisted')
 
-class LikeCommentSerializer(serializers.ModelSerializer):
-
+class LikeSerializer(serializers.ModelSerializer):
+    author = AuthorSerializer()
     class Meta:
-        model = LikeComment
+        model = Like
         fields = '__all__'
 
     def to_representation(self, instance):
         ret = super().to_representation(instance)
-        ret['object'] = ret['url']
-        ret.pop('url')
-        return ret
-
-class LikePostSerializer(serializers.ModelSerializer):
-
-    class Meta:
-        model = LikePost
-        fields = '__all__'
-
-    def to_representation(self, instance):
-        ret = super().to_representation(instance)
-        ret['object'] = ret['url']
-        ret.pop('url')
+        ret['@context'] = ret['context']
+        ret.pop('context')
+        ret.pop('id')
         return ret

@@ -67,20 +67,11 @@ class Post(models.Model):
     visibility = models.CharField(
         max_length=25, choices=VISIBILITY_CHOICES, default=PUBLIC)
     unlisted = models.BooleanField()
-    
-class LikePost(models.Model):
-    id = models.CharField(max_length=200, primary_key=True)
-    type = "Like"
-    object = models.CharField(max_length=500, null=True)
-    author = models.ForeignKey(Author, on_delete=models.CASCADE)
-    summary = models.CharField(max_length=500)
-    url = models.URLField(max_length=250)
 
-class LikeComment(models.Model):
-    id = models.CharField(max_length=200, primary_key=True)
+class Like(models.Model):
+    context = models.CharField(max_length=200)
     type = "Like"
-    object = models.CharField(max_length=500, null=True)
-    author = models.ForeignKey(Author, on_delete=models.CASCADE)
     summary = models.CharField(max_length=500)
-    url = models.URLField(max_length=250)
+    author = models.ForeignKey(Author, on_delete=models.CASCADE)
+    object = models.URLField(max_length=250)
 

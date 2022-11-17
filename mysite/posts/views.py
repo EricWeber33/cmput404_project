@@ -1,23 +1,16 @@
-from pydoc import visiblename
-
-from re import A
-from operator import mod
-from xmlrpc.client import DateTime
-from django.http import Http404, HttpResponse
 from django.shortcuts import get_object_or_404
+from django.http import Http404
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from authors.models import Author
 from authors.serializer import AuthorSerializer
-from .serializer import LikeCommentSerializer, LikePostSerializer
-from .models import Comment, Comments, LikeComment, LikePost, Post
-
-from .serializer import PostSerializer, CreatePostSerializer, CommentSerializer, CommentsSerializer
+from .models import Comment, Comments, Like, Post
+from django.db.models import Q
+from .serializer import PostSerializer, CreatePostSerializer, CommentSerializer, CommentsSerializer, LikeSerializer
 from .models import Post, Comments, Comment
 from inbox.models import Inbox
 from authors.models import Author
-import json
 import uuid
 
 
@@ -46,7 +39,6 @@ def get_object_from_url_or_404(model, url):
             return model.objects.get(pk=url)
         except model.DoesNotExist:
             raise Http404
-
 
 class PostDetail(APIView):
     # URL: ://service/authors/{AUTHOR_ID}/posts/{POST_ID}
@@ -305,9 +297,9 @@ class CommentList(APIView):
         comments_serializer = CommentsSerializer(comments_list)
         return Response(comments_serializer.data)
 
-
 class LikePostList(APIView):
     # URL: ://service/authors/{AUTHOR_ID}/posts/{POST_ID}/likes
+
     def get(self, request, author_pk, post_pk):
         '''
         Description:
@@ -321,16 +313,14 @@ class LikePostList(APIView):
         Returns:
         Returns response containing the likes on a post or HTTP_404_NOT_FOUND if either author or post does not exist
         '''
-        try:
-            author = Author.objects.get(pk=author_pk)
-            post = author.post_set.get(pk=post_pk)
-            likes = LikePost.objects.all().filter(object=post_pk)
-            likesData = LikePostSerializer(likes, many=True).data
-            return Response(likesData)
-        except Post.DoesNotExist:
-            return Response('Post doesn\'t exist', status=status.HTTP_404_NOT_FOUND)
-        except Author.DoesNotExist:
-            return Response('Author doesn\'t exist', status=status.HTTP_404_NOT_FOUND)
+        uri = request.build_absolute_uri().split("/likes")[0]
+        other_uri = uri[:-1] if uri[-1] == '/' else uri + '/'
+        author = get_object_or_404(Author, pk=author_pk)
+        post = get_object_or_404(Post, pk=post_pk, author=author)
+        likes = Like.objects.all().filter(Q(object=uri) | Q(object=other_uri))
+        likesData = LikeSerializer(likes, many=True).data
+        return Response(likesData)
+     
 
     def post(self, request, author_pk, post_pk):
         '''
@@ -351,16 +341,15 @@ class LikePostList(APIView):
             author_display_name = AuthorSerializer(
                 author, many=False).data["displayName"]
 
-            like_post = LikePost(
-                id=f"{uuid.uuid4()}",
-                object=f"{post_pk}",
+            like_post = Like(
+                context=f"TODO",
                 author=author,
                 summary=f"{author_display_name} likes your post",
-                url=f"{request.build_absolute_uri('/')}authors/{author_pk}/posts/{post_pk}"
+                object=f"{request.build_absolute_uri('/')}authors/{author_pk}/posts/{post_pk}"
             )
 
             like_post.save()
-            like_post_serializer = LikePostSerializer(like_post)
+            like_post_serializer = LikeSerializer(like_post)
             return Response(like_post_serializer.data)
 
 
@@ -381,21 +370,15 @@ class LikeCommentList(APIView):
         Returns:
         Returns response containing the likes on a comment or HTTP_404_NOT_FOUND if author, post, or comment does not exist
         '''
-        try:
-            author = Author.objects.get(pk=author_pk)
-            post = author.post_set.get(pk=post_pk)
-            comment = post.comment_set.get(pk=comment_pk)
-            likes = LikeComment.objects.all().filter(comment_id=comment_pk)
+        uri = request.build_absolute_uri().split("/likes")[0]
+        other_uri = uri[:-1] if uri[-1] == '/' else uri + '/'
+        author = get_object_or_404(Author, pk=author_pk)
+        post = get_object_or_404(Post, pk=post_pk, author=author)
+        comment = get_object_from_url_or_404(Comment, uri)
+        likes = Like.objects.all().filter(Q(object=uri) | Q(object=other_uri))
+        likesData = LikeSerializer(likes, many=True).data
+        return Response(likesData)
 
-            likesData = LikeCommentSerializer(likes, many=True).data
-            return Response(likesData)
-
-        except Author.DoesNotExist:
-            return Response('Author doesn\'t exist', status=status.HTTP_404_NOT_FOUND)
-        except Comment.DoesNotExist:
-            return Response('Comment doesn\'t exist', status=status.HTTP_404_NOT_FOUND)
-        except Post.DoesNotExist:
-            return Response('Post doesn\'t exist', status=status.HTTP_404_NOT_FOUND)
 
     def post(self, request, author_pk, post_pk, comment_pk):
         '''
@@ -418,16 +401,15 @@ class LikeCommentList(APIView):
             author_display_name = AuthorSerializer(
                 author, many=False).data["displayName"]
 
-            like_comment = LikePost(
-                id=f"{uuid.uuid4()}",
-                object=f"{comment_pk}",
+            like_comment = Like(
+                context = "TODO",
                 author=author,
                 summary=f"{author_display_name} likes your comment",
-                url=f"{request.build_absolute_uri('/')}authors/{author_pk}/posts/{post_pk}/comments/{comment_pk}"
+                object=f"{request.build_absolute_uri('/')}authors/{author_pk}/posts/{post_pk}/comments/{comment_pk}"
             )
 
             like_comment.save()
-            like_comment_serializer = LikeCommentSerializer(like_comment)
+            like_comment_serializer = LikeSerializer(like_comment)
             return Response(like_comment_serializer.data)
 
 
@@ -448,16 +430,12 @@ class AuthorLikesList(APIView):
         try:
             author = Author.objects.get(pk=author_pk)
 
-            post_likes = LikePost.objects.all().filter(author=author)
-            post_likes_data = LikePostSerializer(post_likes, many=True).data
+            likes = Like.objects.all().filter(author=author)
+            likes_data = LikeSerializer(likes, many=True).data
 
-            comment_likes = LikeComment.objects.all().filter(author=author)
-            comment_likes_data = LikeCommentSerializer(
-                comment_likes, many=True).data
-
+            #TODO hide "friends only likes" from non-authenticated authors
             finalData = {"type": "liked",
-                         "items": post_likes_data + comment_likes_data}
-
+                         "items": likes_data}
             return Response(finalData)
 
         except Author.DoesNotExist:
