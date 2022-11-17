@@ -11,12 +11,10 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework import status
-
-
 from .forms import LoginForm, RegisterForm
 from .models import Author, FollowRequest
 from inbox.models import Inbox
-from .serializer import AuthorSerializer, FollowRequestSerializer
+from .serializer import AuthorSerializer, AuthorListSerializer, FollowRequestSerializer
 
 # Create your views here.
 
@@ -36,11 +34,29 @@ class AuthorList(APIView):
         Returns:
         Response containing all profiles
         '''
-        print(request.user)
-
-        authors = Author.objects.all()
-        serializer = AuthorSerializer(authors, many=True)
-        return Response(serializer.data)
+        if paginated := 'page' in request.GET.keys():
+            page = request.GET.get('page')
+            page_size = request.GET.get('size') or 5
+            try:
+                page = int(page)
+                page_size = int(page_size)
+                assert page > 0
+                assert page_size > 0
+            except Exception:
+                return Response("Bad query", status.HTTP_400_BAD_REQUEST)
+        authors = Author.objects.all().order_by('-id')
+        data = AuthorSerializer(authors, many=True).data
+        data = {'type':'authors', 'items':data}
+        if paginated:
+            try:
+                page_index = (page-1)*page_size
+                last_index = min(page_index+page_size, len(data['items']))
+                data['items'] = data['items'][page_index:last_index]
+            except Exception:
+                return Response("Internal error", status.HTTP_500_INTERNAL_SERVER_ERROR)
+        if not AuthorListSerializer(data=data).is_valid():
+            return Response("Internal error", status.HTTP_500_INTERNAL_SERVER_ERROR)
+        return Response(data)
 
 
 class AuthorDetail(APIView):

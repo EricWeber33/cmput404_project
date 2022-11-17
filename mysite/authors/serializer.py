@@ -12,9 +12,13 @@ class AuthorSerializer(serializers.ModelSerializer):
         ret['id'] = ret['url']
         return ret
 
+
 class FollowRequestSerializer(serializers.ModelSerializer):
-    
     class Meta:
         model = FollowRequest
         fields = '__all__'
         
+
+class AuthorListSerializer(serializers.Serializer):
+    type = serializers.CharField()
+    items = AuthorSerializer(many=True)
