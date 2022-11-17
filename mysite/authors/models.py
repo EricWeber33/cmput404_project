@@ -15,12 +15,10 @@ class Author(models.Model):
 
     user = models.OneToOneField(User, on_delete=models.CASCADE, default=None, null=True)
     verified = models.BooleanField(default=False)
-
-# class FollowRequest(models.Model):
-#     #  actor is sending a request to object
-#     type = "Follow"
-#     summary = models.CharField(max_length=200)
-#     # the sender may not exist in the reciever's db
-#     actor = models.JSONField()
-#     object = models.ForeignKey(Author, on_delete=models.CASCADE)
-
+class FollowRequest(models.Model):
+    summary = models.CharField(max_length=500)
+    type = "Follow"
+    actor = models.ForeignKey(
+        Author, on_delete=models.CASCADE, unique=False, related_name="follower")
+    object = models.ForeignKey(
+        Author, on_delete=models.CASCADE)
