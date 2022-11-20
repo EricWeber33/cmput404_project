@@ -143,10 +143,25 @@ class PostList(APIView):
         Returns:
         Response containing the posts
         '''
+        if paginated := 'page' in request.GET.keys():
+            page = request.GET.get('page')
+            page_size = request.GET.get('size') or 5
+            try:
+                page = int(page)
+                page_size = int(page_size)
+                assert page > 0
+                assert page_size > 0
+            except Exception:
+                return Response("Bad query", status.HTTP_400_BAD_REQUEST)
         author = Author.objects.get(pk=author_id)
-        posts = Post.objects.filter(author=author)
-        serializer = PostSerializer(posts, many=True)
-        return Response(serializer.data)
+        posts = Post.objects.filter(author=author).order_by("-published")
+        if paginated:
+            page_index = (page-1)*page_size
+            last_index = min(page_index+page_size, len(posts))
+            posts = posts[page_index:last_index]
+        data = PostSerializer(posts, many=True).data
+        data = {'type':'posts', 'items':data}
+        return Response(data)
 
     def post(self, request, author_id, format=None):
         '''
@@ -276,10 +291,30 @@ class CommentList(APIView):
         Returns:
         Response containing the list of comments
         '''
-        url = request.build_absolute_uri()
+        if paginated := 'page' in request.GET.keys():
+            page = request.GET.get('page')
+            page_size = request.GET.get('size') or 5
+            try:
+                page = int(page)
+                page_size = int(page_size)
+                assert page > 0
+                assert page_size > 0
+            except Exception:
+                return Response("Bad query", status.HTTP_400_BAD_REQUEST)
+        url = request.build_absolute_uri().split('?')[0] # trim off query params
         comments = get_object_from_url_or_404(Comments, url)
-        serializer = CommentsSerializer(comments)
-        return Response(serializer.data)
+        comments.comments.set(comments.comments.order_by('published'))
+        data = CommentsSerializer(comments).data
+        if paginated:
+            try:
+                page_index = (page-1)*page_size
+                last_index = min(page_index+page_size, len(data['comments']))
+                data['comments'] = data['comments'][page_index:last_index]
+                data['page'] = page
+                data['size'] = page_size
+            except Exception:
+                return Response("Internal error", status.HTTP_500_INTERNAL_SERVER_ERROR)
+        return Response(data)
 
     def post(self, request, author_id, post_id, format=None):
         '''

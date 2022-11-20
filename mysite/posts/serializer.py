@@ -23,7 +23,7 @@ class CommentsSerializer(serializers.ModelSerializer):
     id = serializers.CharField()
     class Meta:
         model = Comments
-        fields = ('type', 'page', 'size', 'post', 'id', 'comments')
+        fields = ('type', 'post', 'id', 'comments')
 
 class PostSerializer(serializers.ModelSerializer):
     commentsSrc = CommentsSerializer()
@@ -36,6 +36,7 @@ class PostSerializer(serializers.ModelSerializer):
 
 class LikeSerializer(serializers.ModelSerializer):
     author = AuthorSerializer()
+    object = serializers.CharField()
     class Meta:
         model = Like
         fields = '__all__'
@@ -45,4 +46,5 @@ class LikeSerializer(serializers.ModelSerializer):
         ret['@context'] = ret['context']
         ret.pop('context')
         ret.pop('id')
+        ret['type'] = 'Like'
         return ret

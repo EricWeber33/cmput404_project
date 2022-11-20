@@ -1,4 +1,5 @@
 from django.http import HttpResponse, Http404
+from django.db.models import Q
 from rest_framework import status
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -9,7 +10,9 @@ import json
 
 from .models import Inbox
 from .serializers import InboxSerializer
+from authors.serializer import FollowRequestSerializer
 from posts.serializer import PostSerializer, CommentSerializer, LikeSerializer
+
 # Create your views here.
 def get_object_from_url_or_404(model, url):
     '''
@@ -73,9 +76,8 @@ class InboxView(APIView):
                 page_index = (page-1)*page_size
                 last_index = min(page_index+page_size, len(data['items']))
                 data['items'] = data['items'][page_index:last_index]
-                return Response(data)
             except Exception:
-                raise Http404
+                return Response("Internal error", status.HTTP_500_INTERNAL_SERVER_ERROR)
         return Response(data)
 
     def post(self, request, pk, format=None):
@@ -100,10 +102,19 @@ class InboxView(APIView):
         if request.data['type'] == "post":
             if not PostSerializer(data=request.data).is_valid():
                 return Response('Invalid post object', status.HTTP_400_BAD_REQUEST)
-        elif request.data['type'] == "follow":
-            return Response("follow not implemented", status.HTTP_501_NOT_IMPLEMENTED)
-        elif request.data['type'] == "like":
-            return Response("like not implemented", status.HTTP_501_NOT_IMPLEMENTED)
+        elif request.data['type'] == "Follow":
+            if not FollowRequestSerializer(data=request.data).is_valid():
+                return Response('Invalid follow request', status.HTTP_400_BAD_REQUEST)
+        elif request.data['type'] == "Like":
+            # Due to some issues with serializing this is more involved than the other
+            # there is likely a better way to do this but this 'works'
+            if '@context' in request.data.keys():
+                request.data['context'] = request.data['@context']
+                request.data.pop('@context')
+            if not LikeSerializer(data=request.data).is_valid():
+                return Response('Invalid like object', status.HTTP_400_BAD_REQUEST)
+            request.data['@context'] = request.data['context']
+            request.data.pop('context')
         elif request.data['type'] == "comment":
             if not CommentSerializer(data=request.data).is_valid():
                 return Response('Invalid comment object', status.HTTP_400_BAD_REQUEST)

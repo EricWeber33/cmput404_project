@@ -12,9 +12,21 @@ class AuthorSerializer(serializers.ModelSerializer):
         ret['id'] = ret['url']
         return ret
 
+
 class FollowRequestSerializer(serializers.ModelSerializer):
-    
+    actor = AuthorSerializer()
+    object = AuthorSerializer()
     class Meta:
         model = FollowRequest
         fields = '__all__'
+    
+    def to_representation(self, instance):
+        ret = super().to_representation(instance)
+        ret.pop('id')
+        ret['type'] = "Follow"
+        return ret
         
+
+class AuthorListSerializer(serializers.Serializer):
+    type = serializers.CharField()
+    items = AuthorSerializer(many=True)
