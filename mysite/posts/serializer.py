@@ -23,7 +23,7 @@ class CommentsSerializer(serializers.ModelSerializer):
     id = serializers.CharField()
     class Meta:
         model = Comments
-        fields = ('type', 'page', 'size', 'post', 'id', 'comments')
+        fields = ('type', 'post', 'id', 'comments')
 
 class PostSerializer(serializers.ModelSerializer):
     commentsSrc = CommentsSerializer()

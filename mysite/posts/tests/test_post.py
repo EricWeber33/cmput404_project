@@ -1,5 +1,4 @@
 import json
-from datetime import datetime
 from unittest import skip
 from django.test import RequestFactory, TestCase
 from django.urls import resolve
@@ -7,9 +6,8 @@ from authors.models import Author
 from inbox.models import Inbox
 from ..views import CommentList, CommentDetail
 from ..models import Post, Comment, Comments
-from datetime import datetime
 from posts.serializer import CommentSerializer, PostSerializer, CommentsSerializer
-from rest_framework.test import APIClient
+from rest_framework.test import APITestCase, APIClient
 from rest_framework import status
 from django.contrib.auth.models import User
 # Create your tests here.
@@ -32,7 +30,7 @@ COMMENT_URL2 = f'{COMMENTS_URL}{COMMENT_ID2}/'
 
 def decode_bytes(byte):
     return json.loads(byte.decode("UTF-8"))
-class PostsTest(TestCase):
+class PostsTest(APITestCase):
     
     def setUp(self):
 
@@ -47,9 +45,7 @@ class PostsTest(TestCase):
             email="test@gmail.com",
             password="testpassword"
         )
-
-        self.apiClient = APIClient()
-        self.apiClient.force_login(self.user)
+        self.client.force_login(self.user)
 
         self.author = Author.objects.create(
             id=ID, 
@@ -73,7 +69,8 @@ class PostsTest(TestCase):
             host=HOST,
             displayName="3",
             github='github',
-            profileImage='')
+            profileImage='',
+            )
         self.comments = Comments.objects.create(
             post=POST_URL,
             id=COMMENTS_URL)
@@ -86,7 +83,7 @@ class PostsTest(TestCase):
             description='foo',
             contentType='text/plain',
             content='bar',
-            author=Author.objects.get(pk=ID),
+            author=self.author,
             count=0,
             comments=COMMENTS_URL,
             commentsSrc=self.comments,
@@ -99,7 +96,7 @@ class PostsTest(TestCase):
             description='foo',
             contentType='text/plain',
             content='bar',
-            author=Author.objects.get(pk=ID2),
+            author=self.author2,
             count=0,
             comments=COMMENTS_URL2,
             commentsSrc=self.comments2,
@@ -129,81 +126,123 @@ class PostsTest(TestCase):
 
     def test_post_post(self):
 
-        result = self.apiClient.get(f'/authors/{ID}/inbox/')
+        result = self.client.get(f'/authors/{ID}/inbox/')
         self.assertEqual(len(result.data['items']), 0)
-        result = self.apiClient.get(f'/authors/{ID2}/inbox/')
+        result = self.client.get(f'/authors/{ID2}/inbox/')
         self.assertEqual(len(result.data['items']), 0)
 
         ENDPOINT = f'/authors/{ID}/posts/'
         post_post_request = PostSerializer(self.post).data
         post_post_request['commentsSrc'] = CommentsSerializer(self.comments).data
-        result = self.apiClient.post(ENDPOINT, data=post_post_request, format='json')
+        result = self.client.post(ENDPOINT, data=post_post_request, format='json')
         self.assertEqual(result.status_code, 200)
 
-        result = self.apiClient.get(f'/authors/{ID}/inbox/')
+        result = self.client.get(f'/authors/{ID}/inbox/')
         self.assertEqual(len(result.data['items']), 1)
-        result = self.apiClient.get(f'/authors/{ID2}/inbox/')
+        result = self.client.get(f'/authors/{ID2}/inbox/')
         self.assertEqual(len(result.data['items']), 1)
+
+    def test_post_pagination(self):
+        ENDPOINT = f'{URL3}/posts/'
+        for i in range(1,6):
+            comment = Comments.objects.create(
+                post=f'{ENDPOINT}3_{i}/',
+                id=f'{ENDPOINT}3_{i}/comments',
+            )
+            Post.objects.create(
+                title='i',
+                id=f'3_{i}',
+                description='foo',
+                contentType='text/plain',
+                content='bar',
+                author=self.author3,
+                count=0,
+                comments=COMMENTS_URL,
+                commentsSrc=comment,
+                visibility='PUBLIC',
+                unlisted=False
+            )
+        try:
+            posts = PostSerializer(
+                Post.objects.all().filter(author=self.author3).order_by('-published'),
+                many=True).data
+            res = self.client.get(ENDPOINT, QUERY_STRING="page=foo&size=bar")
+            self.assertEqual(res.status_code, 400)
+            res = self.client.get(ENDPOINT, QUERY_STRING="page=1&size=2")
+            self.assertEqual(res.status_code, 200)
+            self.assertEqual(len(res.data['items']), 2)
+            self.assertEqual(res.data['items'], posts[:2])
+            res = self.client.get(ENDPOINT, QUERY_STRING="page=2&size=2")
+            self.assertEqual(res.status_code, 200)
+            self.assertEqual(len(res.data['items']), 2)
+            self.assertEqual(res.data['items'], posts[2:4])
+            # test page size larger than remaining items
+            res = self.client.get(ENDPOINT, QUERY_STRING="page=2&size=3")
+            self.assertEqual(res.status_code, 200)
+            self.assertEqual(len(res.data['items']), 2)
+            self.assertEqual(res.data['items'], posts[3:])
+        finally:
+            posts = Post.objects.all().filter(author=self.author3)
+            for post in posts:
+                post.delete()
+        
 
     def test_post_friends(self):
 
         # Check all inboxs empty
-        result = self.apiClient.get(f'/authors/{ID}/inbox/')
+        result = self.client.get(f'/authors/{ID}/inbox/')
         self.assertEqual(len(result.data['items']), 0)
-        result = self.apiClient.get(f'/authors/{ID2}/inbox/')
+        result = self.client.get(f'/authors/{ID2}/inbox/')
         self.assertEqual(len(result.data['items']), 0)
-        result = self.apiClient.get(f'/authors/{ID3}/inbox/')
+        result = self.client.get(f'/authors/{ID3}/inbox/')
         self.assertEqual(len(result.data['items']), 0)
 
         #test: sending a valid follow request (author 1 attempts to follow author 2)
-        response = self.apiClient.post(f'{HOST}/authors/2/sendfollowrequest/')
+        response = self.client.post(f'{HOST}/authors/2/sendfollowrequest/')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
         # Switch to user 2
-        self.apiClient.logout()
-        self.apiClient.force_login(self.user2)
+        self.client.logout()
+        self.client.force_login(self.user2)
 
         #test follow request is sent to the top of the object authors inbox
-        response = self.apiClient.get(f'{HOST}/authors/2/inbox/')
+        response = self.client.get(f'{HOST}/authors/2/inbox/')
         inbox_items = decode_bytes(response.content).get('items')
         self.assertEqual(inbox_items[0].get("summary"), "1 wants to follow 2")
 
         #test accepting a follow request
-        response = self.apiClient.put(f'{HOST}/authors/2/followers/1/')
+        response = self.client.put(f'{HOST}/authors/2/followers/1/')
         self.assertEqual(decode_bytes(response.content), "Success. 1 follows you.")
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
-        self.apiClient.logout()
-        self.apiClient.force_login(self.user2)
+        self.client.logout()
+        self.client.force_login(self.user2)
 
         # Make post
 
-        result = self.apiClient.get(f'/authors/{ID}/inbox/')
+        result = self.client.get(f'/authors/{ID}/inbox/')
         self.assertEqual(len(result.data['items']), 0)
-        result = self.apiClient.get(f'/authors/{ID2}/inbox/')
+        result = self.client.get(f'/authors/{ID2}/inbox/')
         self.assertEqual(len(result.data['items']), 1)              # Has 1 item in box due to follow request
-        result = self.apiClient.get(f'/authors/{ID3}/inbox/')
+        result = self.client.get(f'/authors/{ID3}/inbox/')
         self.assertEqual(len(result.data['items']), 0)
 
         ENDPOINT = f'/authors/{ID2}/posts/'
         post_post_request = PostSerializer(self.post2).data
         post_post_request['commentsSrc'] = CommentsSerializer(self.comments2).data
-        result = self.apiClient.post(ENDPOINT, data=post_post_request, format='json')
+        result = self.client.post(ENDPOINT, data=post_post_request, format='json')
         self.assertEqual(result.status_code, 200)
 
         # Expect only inbox 1 and 2 to receive post due to 1 following 2 and 2 is the original poster
-        result = self.apiClient.get(f'/authors/{ID}/inbox/')
+        result = self.client.get(f'/authors/{ID}/inbox/')
         self.assertEqual(len(result.data['items']), 1)
-        result = self.apiClient.get(f'/authors/{ID2}/inbox/')
+        result = self.client.get(f'/authors/{ID2}/inbox/')
         self.assertEqual(len(result.data['items']), 2)
-        result = self.apiClient.get(f'/authors/{ID3}/inbox/')
+        result = self.client.get(f'/authors/{ID3}/inbox/')
         self.assertEqual(len(result.data['items']), 0)
 
 
-
-
-        
-class CommentTest(TestCase):
+class CommentTest(APITestCase):
 
     def setUp(self):
 
@@ -212,17 +251,14 @@ class CommentTest(TestCase):
             email="test@gmail.com",
             password="testpassword"
         )
-        self.apiClient = APIClient()
-        self.apiClient.force_login(self.user)
-
-        Author.objects.create(
+        self.client.force_login(self.user)
+        self.author = Author.objects.create(
             id=ID, 
             url=URL,
             host=HOST,
             displayName="1",
             github='github',
             profileImage='')
-        
         Post.objects.create(
             title  = 'test post',
             id = ID,
@@ -233,7 +269,7 @@ class CommentTest(TestCase):
             author = Author.objects.get(pk=ID),
             count = 0,
             unlisted = False)
-        comment = Comment.objects.create(
+        self.comment = Comment.objects.create(
             author=Author.objects.get(pk=ID),
             id=COMMENT_URL,
             comment="test comment 1")
@@ -242,16 +278,16 @@ class CommentTest(TestCase):
             id=COMMENT_URL2,
             comment = "test comment 2")
         comments = Comments.objects.create(
-            post=Post.objects.get(pk=ID),
+            post=POST_URL,
             id=COMMENTS_URL)
-        comments.comments.add(comment)
+        comments.comments.add(self.comment)
 
     @skip('doesnt work')
     def test_post_comment(self):
         ENDPOINT = f'/authors/{ID}/posts/{ID}/comments/'
  
         comments_post_request = CommentSerializer(self.comment2).data
-        result = self.apiClient.post(ENDPOINT, data=comments_post_request, format='json')
+        result = self.client.post(ENDPOINT, data=comments_post_request, format='json')
         # Goes to comments and the the content listed in (comment : x )
         self.assertEqual(list(result.data['comments'][1].items())[2][1], "test comment 2")
 
@@ -270,6 +306,51 @@ class CommentTest(TestCase):
         self.assertEqual(result.data['id'], COMMENTS_URL)
         self.assertEqual(len(result.data['comments']), 1)
         self.assertEqual(result.data['comments'][0]['comment'], 'test comment 1')
+
+    def test_pagination(self):
+        post_url = f'{URL}/posts/2/'
+        comments_url = f'{post_url}comments/'
+        Post.objects.create(
+            title  = 'test pagination',
+            id = 2,
+            source = '',
+            description = 'foo',
+            contentType = 'text/plain',
+            content = 'bar',
+            author = self.author,
+            count = 0,
+            unlisted = False)
+        commentSrc = Comments.objects.create(
+            post=post_url,
+            id=comments_url
+        )
+        for i in range(1,6):
+            commentSrc.comments.add(
+                Comment.objects.create(
+                    author=self.author,
+                    id=f'{comments_url}{i}',
+                    comment="test comment"
+                )
+            )
+        comments = CommentsSerializer(commentSrc).data
+        
+        res = self.client.get(comments_url, QUERY_STRING='page=foo&size=bar')
+        self.assertEqual(res.status_code, 400)
+        res = self.client.get(comments_url, QUERY_STRING='page=1&size=2')
+        self.assertEqual(res.status_code, 200)
+        self.assertEqual(res.data['page'], 1)
+        self.assertEqual(res.data['size'], 2)
+        self.assertEqual(comments['comments'][:2], res.data['comments'])
+        res = self.client.get(comments_url, QUERY_STRING='page=2&size=2')
+        self.assertEqual(res.status_code, 200)
+        self.assertEqual(res.data['page'], 2)
+        self.assertEqual(res.data['size'], 2)
+        self.assertEqual(comments['comments'][2:4], res.data['comments'])
+        # test page size larger than remaining items
+        res = self.client.get(comments_url, QUERY_STRING="page=2&size=3")
+        self.assertEqual(res.status_code, 200)
+        self.assertEqual(len(res.data['comments']), 2)
+        self.assertEqual(comments['comments'][3:], res.data['comments'])
 
     def test_get_comment(self):
         request = RequestFactory().get(f'/authors/{ID}/posts/{ID}/comments/{COMMENT_ID}/')

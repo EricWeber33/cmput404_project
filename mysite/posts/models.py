@@ -19,8 +19,6 @@ class Comment(models.Model):
 
 class Comments(models.Model):
     type = "comments"
-    page = models.IntegerField(default=1)
-    size = models.IntegerField(default=5)
     post = models.CharField(max_length=200)
     id = models.CharField(max_length=200, primary_key=True)
     comments = models.ManyToManyField(Comment, blank=True)
