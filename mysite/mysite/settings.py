@@ -36,7 +36,7 @@ CSRF_TRUSTED_ORIGINS = ["https://cmput404f22t17.herokuapp.com"]
 INSTALLED_APPS = [
     'authors.apps.AuthorsConfig',
     'inbox.apps.InboxConfig',
-    'frontend.apps.FrontendConfig',
+    'frontend',
     'posts.apps.PostsConfig',
     'django.contrib.admin',
     'django.contrib.auth',

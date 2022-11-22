@@ -20,7 +20,6 @@ from .serializer import AuthorSerializer, AuthorListSerializer, FollowRequestSer
 
 
 class AuthorList(APIView):
-    permission_classes = (IsAuthenticated,)
     # URL: ://service/authors/
 
     def get(self, request, format=None):

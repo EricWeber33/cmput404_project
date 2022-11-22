@@ -4,7 +4,7 @@ from django.contrib.auth.models import User
 # Create your models here.
 
 class Author(models.Model):
-    type = "author"
+    type = "author/"
     id = models.CharField(max_length=200, primary_key=True)
     url = models.CharField(max_length=200)
     host = models.CharField(max_length=200)
