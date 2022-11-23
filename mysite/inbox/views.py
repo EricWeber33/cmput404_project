@@ -3,7 +3,7 @@ from django.db.models import Q
 from rest_framework import status
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated
+from rest_framework import permissions
 import commonmark
 
 import json
@@ -12,6 +12,17 @@ from .models import Inbox
 from .serializers import InboxSerializer
 from authors.serializer import FollowRequestSerializer
 from posts.serializer import PostSerializer, CommentSerializer, LikeSerializer
+
+
+from rest_framework import permissions
+
+
+class IsPostOrIsAuthenticated(permissions.BasePermission):        
+
+    def has_permission(self, request, view):
+        if request.method == 'POST':
+            return True
+        return request.user and request.user.is_authenticated
 
 # Create your views here.
 def get_object_from_url_or_404(model, url):
@@ -41,7 +52,7 @@ def get_object_from_url_or_404(model, url):
             raise Http404
         
 class InboxView(APIView):
-    permission_classes = (IsAuthenticated,)
+    permission_classes = (IsPostOrIsAuthenticated,)
     # URL:://service/authors/{AUTHOR_ID}/inbox
     def get(self, request, pk, format=None):
         '''
