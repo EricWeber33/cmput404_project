@@ -153,9 +153,13 @@ def homepage_view(request, pk):
     # inbox uses a json schema which means updates wont be reflected 
     # here we get the items referenced from db and replace them in the items box
     removal_list = [] # keep track of indexes of deleted inbox items
-    for i in range(len(inbox['items'])):
+    if is_local_user:
+        inbox_items = inbox.items
+    else:
+        inbox_items = inbox['items']
+    for i in range(len(inbox_items)):
         if is_local_user:
-            if not 'type' in inbox.items[i].keys():
+            if not 'type' in inbox_items[i].keys():
                 removal_list.append(i)
             elif inbox.items[i]['type'] == "post":
                 try:
@@ -173,4 +177,4 @@ def homepage_view(request, pk):
     if is_local_user:
         inbox.save()
     post_form = PostForm()
-    return render(request, 'homepage/home.html', {'type': 'inbox', 'items': inbox['items'], "post_form": post_form})
+    return render(request, 'homepage/home.html', {'type': 'inbox', 'items': inbox_items, "post_form": post_form})
