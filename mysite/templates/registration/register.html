@@ -13,4 +13,14 @@
   {% endfor %}
   <button type="submit">Register</button>
 </form>
+
+<h2>Register a remote user</h2>
+<form method="post" action="/register/">
+  {% csrf_token %}
+  {{ remote_form.as_p }}
+  {% for e in errors %}
+    <span class="login-error">{{e}}</span><br>
+  {% endfor %}
+  <button type="submit">Register</button>
+</form>
 {% endblock %}

@@ -20,6 +20,8 @@ import commonmark
 import base64
 from io import BytesIO
 
+LOCAL_NODES = ['127.0.0.1:8000', 'https://cmput404f22t17.herokuapp.com/']
+
 def get_object_from_url(model, url):
     """attempts to return a db item using a url as primary key"""
     try:
@@ -98,7 +100,6 @@ def comment_submit(request, pk):
         client = requests.Session()
         author = Author.objects.get(pk=pk)
         author = json.dumps(AuthorSerializer(author).data)
-        print('CATRA: ', author)
         cookies = {
             'sessionid': request.session.session_key,
             'csrftoken': get_token(request)
@@ -110,7 +111,6 @@ def comment_submit(request, pk):
             'published': str(datetime.datetime.now()),
             'id': uuid.uuid4().hex
         }
-        print('HORDAK: ', data)
         client.post(request.POST['endpoint'], cookies=cookies, data=data)
         """
         author = Author.objects.get(pk=pk)
@@ -134,26 +134,43 @@ def comment_submit(request, pk):
 @permission_classes(IsAuthenticated,)
 def homepage_view(request, pk):
     url = request.build_absolute_uri().split('home/')[0]
-    inbox = Inbox.objects.get(pk=url)
+    author = Author.objects.get(pk=url.strip('/').split('/')[-1])
+    is_local_user = author.host in LOCAL_NODES
+    if is_local_user:
+        inbox = Inbox.objects.get(pk=url)
+    else:
+        username = request.session['user_data'][0]
+        password = request.session['user_data'][1]
+        with requests.Session() as client:
+            client.headers.update({
+                'Authorization': f'Basic {username}:{password}'
+            })
+            url = author.url.strip('/') + '/' + 'inbox'
+            inbox = client.get(url).content
+            inbox = inbox.decode('utf-8')
+            inbox = json.loads(inbox)
+           
     # inbox uses a json schema which means updates wont be reflected 
     # here we get the items referenced from db and replace them in the items box
     removal_list = [] # keep track of indexes of deleted inbox items
-    for i in range(len(inbox.items)):
-        if not 'type' in inbox.items[i].keys():
-            removal_list.append(i)
-        elif inbox.items[i]['type'] == "post":
-            try:
-                post = Post.objects.get(pk=inbox.items[i]['id'])
-                inbox.items[i] = PostSerializer(post).data
-                if inbox.items[i]['contentType'] == 'text/markdown':
-                    inbox.items[i]['content'] = commonmark.commonmark(inbox.items[i]['content'])
-            except Post.DoesNotExist:
+    for i in range(len(inbox['items'])):
+        if is_local_user:
+            if not 'type' in inbox.items[i].keys():
                 removal_list.append(i)
-        elif inbox.items[i]['type'] == "comment":
-            pass
+            elif inbox.items[i]['type'] == "post":
+                try:
+                    post = Post.objects.get(pk=inbox.items[i]['id'])
+                    inbox.items[i] = PostSerializer(post).data
+                    if inbox.items[i]['contentType'] == 'text/markdown':
+                        inbox.items[i]['content'] = commonmark.commonmark(inbox.items[i]['content'])
+                except Post.DoesNotExist:
+                    removal_list.append(i)
+            elif inbox.items[i]['type'] == "comment":
+                pass
     removal_list.reverse()
     for i in range(len(removal_list)):
         del inbox.items[removal_list[i]]
-    inbox.save()
+    if is_local_user:
+        inbox.save()
     post_form = PostForm()
-    return render(request, 'homepage/home.html', {'type': inbox.type, 'items': inbox.items, "post_form": post_form})
+    return render(request, 'homepage/home.html', {'type': 'inbox', 'items': inbox['items'], "post_form": post_form})

@@ -11,9 +11,11 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework import status
-from .forms import LoginForm, RegisterForm
+from .forms import LoginForm, RegisterForm, RemoteRegisterForm
 from .models import Author, FollowRequest
 from inbox.models import Inbox
+import requests
+import json
 from .serializer import AuthorSerializer, AuthorListSerializer, FollowRequestSerializer
 
 from rest_framework import permissions
@@ -286,6 +288,8 @@ def login_view(request):
         if form.is_valid():
             username = form.cleaned_data['username']
             password = form.cleaned_data['password']
+            # This is probably a security vulnerability
+            request.session['user_data'] = [username, password]
             user = authenticate(request, username=username, password=password)
             if user is not None:
                 if user.is_superuser:
@@ -315,6 +319,7 @@ def register_view(request):
     '''
     if request.method == 'POST':
         form = RegisterForm(request.POST)
+        remote_form = RemoteRegisterForm(request.POST)
         if form.is_valid():
             displayName = form.cleaned_data.pop('displayName')
             github = form.cleaned_data.pop('github')
@@ -326,6 +331,8 @@ def register_view(request):
                     **form.cleaned_data, password=password)
                 user_id = uuid.uuid4().hex
                 domain = get_current_site(request).domain
+                if domain == "cmput404f22t17.herokuapp.com":
+                    domain = "https://" + domain + "/"
                 scheme = request.scheme
                 user_url = scheme + '://' + domain + '/authors/'+user_id+'/'
                 author = Author.objects.create(
@@ -345,10 +352,71 @@ def register_view(request):
             except Exception as e:
                 print(e)
                 form.add_error('Could not create account')
+        elif remote_form.is_valid():
+            try:
+                initialize_remote_user(remote_form.cleaned_data.pop('remote_author'),
+                                       remote_form.cleaned_data.pop('username'),
+                                       remote_form.cleaned_data.pop('password'))
+            except Exception as e:
+                #TODO clean up failed user creation in DB
+                pass
     else:
         form = RegisterForm()
-    return render(request, 'registration/register.html', {'form': form})
+        remote_form = RemoteRegisterForm();
+    return render(request, 'registration/register.html', {'form': form, 'remote_form': remote_form})
 
+def initialize_remote_user(remote_author, username, password):
+    host = remote_author.split('/authors/')[0]
+    with requests.Session() as client:
+        client.headers.update({
+            'Authorization': f'Basic {username}:{password}'
+        })
+        resp = client.get(remote_author)
+        if hasattr(resp, 'data'):
+            data = getattr(resp, 'data')
+        elif hasattr(resp, 'body'):
+            data = getattr(resp, 'body')
+        elif hasattr(resp, 'content'):
+            data = getattr(resp, 'content')
+        else:
+            raise Exception("Could not parse author object")
+        if type(data) == bytes:
+            data = data.decode('utf-8')
+        if type(data) == str:
+            data = json.loads(data)
+        author = make_author(host, data)
+        user = User.objects.create(
+            username=username,
+            password=make_password(password)
+        )
+        author.user=user
+        user.save()
+        author.save()
+
+def make_author(host, recieved_author):
+    assert type(recieved_author) == dict
+    if not recieved_author.get("id"):
+        raise Exception("could not parse author object")
+    a_id = recieved_author.get("id")
+    a_id = a_id.split('/')[-2] if a_id[-1] == '/' else a_id.split('/')[-1]
+    a_url = recieved_author.get("url") or f"{host}/authors/{a_id.split('authors/')[-1]}"
+    a_host = recieved_author.get("host") or host
+    a_displayName = recieved_author.get("displayName") or \
+                    recieved_author.get("displayname") or \
+                    recieved_author.get("display_name") or \
+                    None
+    if not a_displayName:
+        raise Exception("could not parse author object")
+    a_git = recieved_author.get("github") or ""
+    a_img = recieved_author.get("profileImage") or "https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png"
+    return Author.objects.create(
+        id=a_id,
+        url=a_url,
+        host=a_host,
+        displayName=a_displayName,
+        github=a_git,
+        profileImage=a_img
+    )
 
 def logout_view(request):
     '''
