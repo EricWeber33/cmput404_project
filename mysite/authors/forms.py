@@ -14,3 +14,9 @@ class RegisterForm(UserCreationForm):
     class Meta:
         model = User
         fields = ['username', 'password1', 'password2', 'email', 'displayName', 'github', 'profileImage']
+
+class RemoteRegisterForm(forms.Form):
+    remote_author = forms.URLField(label="Remote Author")
+    username = forms.CharField(label="Remote User")
+    password = forms.CharField(label="Remote Password", widget=forms.PasswordInput())
+
