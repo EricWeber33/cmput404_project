@@ -371,7 +371,7 @@ def initialize_remote_user(remote_author, username, password):
         client.headers.update({
             'Authorization': f'Basic {username}:{password}'
         })
-        resp = client.get(remote_author)
+        resp = client.get(remote_author, verify=False)
         if hasattr(resp, 'data'):
             data = getattr(resp, 'data')
         elif hasattr(resp, 'body'):
