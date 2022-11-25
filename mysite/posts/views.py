@@ -13,6 +13,15 @@ from inbox.models import Inbox
 from authors.models import Author
 import uuid
 
+from rest_framework import permissions
+
+class AuthenticatePost(permissions.BasePermission):
+
+    def has_permission(self, request, view):
+        if request.method == 'POST':
+            return request.user and request.user.is_authenticated
+        return True
+
 
 def get_object_from_url_or_404(model, url):
     '''
@@ -41,6 +50,7 @@ def get_object_from_url_or_404(model, url):
             raise Http404
 
 class PostDetail(APIView):
+    permission_classes = (AuthenticatePost,)
     # URL: ://service/authors/{AUTHOR_ID}/posts/{POST_ID}
 
     serializer_class = CreatePostSerializer
@@ -66,7 +76,7 @@ class PostDetail(APIView):
     def post(self, request, author_id, postID, format=None): # WIP (cannot handle an incomplete HTML form)
         '''
         Description:
-        Updates the post whose id is pk
+        Updates the post whose id is pk. Must be authenticated.
 
         Params:
         request: request

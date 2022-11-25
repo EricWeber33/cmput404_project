@@ -16,11 +16,19 @@ from .models import Author, FollowRequest
 from inbox.models import Inbox
 from .serializer import AuthorSerializer, AuthorListSerializer, FollowRequestSerializer
 
+from rest_framework import permissions
+
+class AuthenticatePut(permissions.BasePermission):        
+
+    def has_permission(self, request, view):
+        if request.method == 'GET' or request.method == 'DELETE':
+            return True
+        return request.user and request.user.is_authenticated
+
 # Create your views here.
 
 
 class AuthorList(APIView):
-    permission_classes = (IsAuthenticated,)
     # URL: ://service/authors/
 
     def get(self, request, format=None):
@@ -60,7 +68,6 @@ class AuthorList(APIView):
 
 
 class AuthorDetail(APIView):
-    permission_classes = (IsAuthenticated,)
     # URL: ://service/authors/{AUTHOR_ID}/
 
     def get_object(self, pk):
@@ -103,7 +110,6 @@ class AuthorDetail(APIView):
 
 
 class FollowerList(APIView):
-    permission_classes = (IsAuthenticated,)
     # URL: ://service/authors/{AUTHOR_ID}/followers
 
     def get(self, request, pk, format=None):
@@ -172,6 +178,7 @@ class MakeFollowRequest(APIView):
 
 class FollowerDetail(APIView):
     # URL: ://service/authors/{AUTHOR_ID}/followers/{FOREIGN_AUTHOR_ID}
+    permission_classes = (AuthenticatePut,)
     def get(self, request, author_id, foreign_author_id):
         '''
         Description:
