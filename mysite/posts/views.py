@@ -387,18 +387,26 @@ class LikePostList(APIView):
             author = Author.objects.get(pk=request.user.author.id)
             author_display_name = AuthorSerializer(
                 author, many=False).data["displayName"]
+            
+            object=f"{request.build_absolute_uri('/')}authors/{author_pk}/posts/{post_pk}"
+            like = Like.objects.all().filter(object=object, author=author)
+            #if like doesnt exist, create a new like object
+            if len(like) == 0:
+                like_post = Like(
+                    context=f"TODO",
+                    author=author,
+                    summary=f"{author_display_name} likes your post",
+                    object=f"{request.build_absolute_uri('/')}authors/{author_pk}/posts/{post_pk}"
+                )
 
-            like_post = Like(
-                context=f"TODO",
-                author=author,
-                summary=f"{author_display_name} likes your post",
-                object=f"{request.build_absolute_uri('/')}authors/{author_pk}/posts/{post_pk}"
-            )
+                like_post.save()
+                like_post_serializer = LikeSerializer(like_post)
+                return Response(like_post_serializer.data)
+            else:
+                return Response("You have liked this post already", status=status.HTTP_403_FORBIDDEN)
 
-            like_post.save()
-            like_post_serializer = LikeSerializer(like_post)
-            return Response(like_post_serializer.data)
-
+        else:
+            return Response("You are not authenticated. Log in first", status=status.HTTP_401_UNAUTHORIZED)
 
 class LikeCommentList(APIView):
     # URL: ://service/authors/{AUTHOR_ID}/posts/{POST_ID}/comments/{COMMENT_ID}/likes
