@@ -16,6 +16,7 @@ from .models import Author, FollowRequest
 from inbox.models import Inbox
 import requests
 import json
+import base64
 from .serializer import AuthorSerializer, AuthorListSerializer, FollowRequestSerializer
 
 from rest_framework import permissions
@@ -354,11 +355,13 @@ def register_view(request):
                 form.add_error('Could not create account')
         elif remote_form.is_valid():
             try:
+                print(remote_form.cleaned_data)
                 initialize_remote_user(remote_form.cleaned_data.pop('remote_author'),
                                        remote_form.cleaned_data.pop('username'),
                                        remote_form.cleaned_data.pop('password'))
             except Exception as e:
                 #TODO clean up failed user creation in DB
+                raise e
                 pass
     else:
         form = RegisterForm()
@@ -368,10 +371,11 @@ def register_view(request):
 def initialize_remote_user(remote_author, username, password):
     host = remote_author.split('/authors/')[0]
     with requests.Session() as client:
-        client.headers.update({
-            'Authorization': f'Basic {username}:{password}'
-        })
-        resp = client.get(remote_author, verify=False)
+        # auth_str = "{}:{}".format(username, password).encode('utf-8')
+        # client.headers.update({
+        #     'Authorization': 'Basic {}'.format(base64.b64encode(auth_str))
+        # })
+        resp = client.get(remote_author)
         if hasattr(resp, 'data'):
             data = getattr(resp, 'data')
         elif hasattr(resp, 'body'):
@@ -380,6 +384,7 @@ def initialize_remote_user(remote_author, username, password):
             data = getattr(resp, 'content')
         else:
             raise Exception("Could not parse author object")
+        print(data)
         if type(data) == bytes:
             data = data.decode('utf-8')
         if type(data) == str:
