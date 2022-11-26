@@ -142,9 +142,9 @@ def homepage_view(request, pk):
         username = request.session['user_data'][0]
         password = request.session['user_data'][1]
         with requests.Session() as client:
-            client.headers.update({
-                'Authorization': f'Basic {username}:{password}'
-            })
+            # client.headers.update({
+            #     'Authorization': f'Basic {username}:{password}'
+            # })
             url = author.url.strip('/') + '/' + 'inbox'
             inbox = client.get(url).content
             inbox = inbox.decode('utf-8')
