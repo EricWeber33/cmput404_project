@@ -15,6 +15,7 @@ from .forms import LoginForm, RegisterForm, RemoteRegisterForm
 from .models import Author, FollowRequest
 from inbox.models import Inbox
 import requests
+from requests.auth import HTTPBasicAuth
 import json
 import base64
 from .serializer import AuthorSerializer, AuthorListSerializer, FollowRequestSerializer
@@ -371,10 +372,7 @@ def register_view(request):
 def initialize_remote_user(remote_author, username, password):
     host = remote_author.split('/authors/')[0]
     with requests.Session() as client:
-        # auth_str = "{}:{}".format(username, password).encode('utf-8')
-        # client.headers.update({
-        #     'Authorization': 'Basic {}'.format(base64.b64encode(auth_str))
-        # })
+        client.auth = HTTPBasicAuth(username, password)
         resp = client.get(remote_author)
         if hasattr(resp, 'data'):
             data = getattr(resp, 'data')
