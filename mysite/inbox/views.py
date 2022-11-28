@@ -104,37 +104,41 @@ class InboxView(APIView):
         Returns:
         Response which has post added to the inbox
         '''
-        url = request.build_absolute_uri().split('inbox')[0]
-        inbox = get_object_from_url_or_404(Inbox, url)
         try:
-            object_type = request.data['type']
-        except KeyError:
-            return Response('Unknown type', status=status.HTTP_400_BAD_REQUEST)
-        if request.data['type'] == "post":
-            if not PostSerializer(data=request.data).is_valid():
-                return Response('Invalid post object', status.HTTP_400_BAD_REQUEST)
-        elif request.data['type'] == "Follow":
-            if not FollowRequestSerializer(data=request.data).is_valid():
-                return Response('Invalid follow request', status.HTTP_400_BAD_REQUEST)
-        elif request.data['type'] == "Like":
-            # Due to some issues with serializing this is more involved than the other
-            # there is likely a better way to do this but this 'works'
-            if '@context' in request.data.keys():
-                request.data['context'] = request.data['@context']
-                request.data.pop('@context')
-            if not LikeSerializer(data=request.data).is_valid():
-                return Response('Invalid like object', status.HTTP_400_BAD_REQUEST)
-            request.data['@context'] = request.data['context']
-            request.data.pop('context')
-        elif request.data['type'] == "comment":
-            if not CommentSerializer(data=request.data).is_valid():
-                return Response('Invalid comment object', status.HTTP_400_BAD_REQUEST)
-        else:
-            return Response(f'Unsupported object type for inbox: {object_type}', status=status.HTTP_400_BAD_REQUEST)
-        inbox.items.insert(0, request.data)
-        inbox.save()
-        inbox_serializer = InboxSerializer(inbox)
-        return Response(inbox_serializer.data)
+            url = request.build_absolute_uri().split('inbox')[0]
+            inbox = get_object_from_url_or_404(Inbox, url)
+            try:
+                object_type = request.data['type']
+            except KeyError:
+                return Response('Unknown type', status=status.HTTP_400_BAD_REQUEST)
+            if request.data['type'] == "post":
+                if not PostSerializer(data=request.data).is_valid():
+                    return Response('Invalid post object', status.HTTP_400_BAD_REQUEST)
+            elif request.data['type'] == "Follow":
+                if not FollowRequestSerializer(data=request.data).is_valid():
+                    return Response('Invalid follow request', status.HTTP_400_BAD_REQUEST)
+            elif request.data['type'] == "Like":
+                # Due to some issues with serializing this is more involved than the other
+                # there is likely a better way to do this but this 'works'
+                if '@context' in request.data.keys():
+                    request.data['context'] = request.data['@context']
+                    request.data.pop('@context')
+                if not LikeSerializer(data=request.data).is_valid():
+                    return Response('Invalid like object', status.HTTP_400_BAD_REQUEST)
+                request.data['@context'] = request.data['context']
+                request.data.pop('context')
+            elif request.data['type'] == "comment":
+                if not CommentSerializer(data=request.data).is_valid():
+                    return Response('Invalid comment object', status.HTTP_400_BAD_REQUEST)
+            else:
+                return Response(f'Unsupported object type for inbox: {object_type}', status=status.HTTP_400_BAD_REQUEST)
+            inbox.items.insert(0, request.data)
+            inbox.save()
+            inbox_serializer = InboxSerializer(inbox)
+            return Response(inbox_serializer.data)
+        except Exception as e:
+            print(e)
+            return Response("Internal Error", status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     def delete(self, request, pk):
         '''
