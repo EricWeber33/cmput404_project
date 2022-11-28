@@ -73,6 +73,15 @@ p {
     background: linear-gradient(0deg, magenta 0%, rgb(0, 225, 255) 70%);
 }
 
+.action_box {
+    display: inline-block;
+    white-space: nowrap;
+    overflow: auto;
+}
+.action_box * {
+    float: right;
+}
+
 .comment {
     border: 1px solid rgb(0, 225, 255);
     border-radius: 5px;

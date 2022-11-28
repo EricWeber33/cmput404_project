@@ -88,6 +88,35 @@ def post_submit(request, pk):
                 client.post(post_endpoint, cookies=cookies, data=post_data)
     return HttpResponseRedirect(home_url)
         
+
+@permission_classes(IsAuthenticated,)
+def repost_submit(request, pk, post_id):
+    author = get_object_from_url(Author, pk)
+    post = get_object_from_url(Post, post_id)
+    url = request.build_absolute_uri()
+    home_url = url.split('/home/')[0] + "/home/"
+    post_endpoint = url.split('/home/')[0] + "/posts/"
+    if request.method == 'POST':
+        post_data = PostSerializer(post).data
+        post_data['csrfmiddlewaretoken'] = get_token(request)
+        with requests.Session() as client:
+            client.headers.update(request.headers)
+            client.headers.update({
+                'Content-Type': None,
+                'Content-Length': None,
+                'Cookie': None
+            })
+            cookies = {
+                'sessionid': request.session.session_key,
+                'csrftoken': get_token(request)
+            }
+            client.post(post_endpoint, cookies=cookies, data=post_data)
+
+    return HttpResponseRedirect(home_url)
+
+
+
+
 @permission_classes(IsAuthenticated,)
 def comment_submit(request, pk):
     url = request.build_absolute_uri()
