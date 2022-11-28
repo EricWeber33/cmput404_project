@@ -390,6 +390,7 @@ class LikePostList(APIView):
             
             object=f"{request.build_absolute_uri('/')}authors/{author_pk}/posts/{post_pk}"
             like = Like.objects.all().filter(object=object, author=author)
+
             #if like doesnt exist, create a new like object
             if len(like) == 0:
                 like_post = Like(
@@ -456,16 +457,23 @@ class LikeCommentList(APIView):
             author_display_name = AuthorSerializer(
                 author, many=False).data["displayName"]
 
-            like_comment = Like(
-                context = "TODO",
-                author=author,
-                summary=f"{author_display_name} likes your comment",
-                object=f"{request.build_absolute_uri('/')}authors/{author_pk}/posts/{post_pk}/comments/{comment_pk}"
-            )
+            object=f"{request.build_absolute_uri('/')}authors/{author_pk}/posts/{post_pk}/comments/{comment_pk}"
+            like = Like.objects.all().filter(object=object, author=author)
+            
+            #if like doesnt exist, create a new like object
+            if len(like) == 0:
+                like_comment = Like(
+                    context = "TODO",
+                    author=author,
+                    summary=f"{author_display_name} likes your comment",
+                    object=object
+                )
 
-            like_comment.save()
-            like_comment_serializer = LikeSerializer(like_comment)
-            return Response(like_comment_serializer.data)
+                like_comment.save()
+                like_comment_serializer = LikeSerializer(like_comment)
+                return Response(like_comment_serializer.data)
+            else:
+                return Response("You have liked this comment already", status=status.HTTP_403_FORBIDDEN)
 
 
 class AuthorLikesList(APIView):
