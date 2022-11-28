@@ -1,5 +1,5 @@
 from django.shortcuts import get_object_or_404
-from django.http import Http404
+from django.http import Http404, HttpResponse
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
@@ -11,7 +11,7 @@ from .serializer import PostSerializer, CreatePostSerializer, CommentSerializer,
 from .models import Post, Comments, Comment
 from inbox.models import Inbox
 from authors.models import Author
-import uuid
+import uuid, base64
 
 from rest_framework import permissions
 
@@ -258,7 +258,10 @@ class ImageDetail(APIView):
         post = get_object_or_404(Post, pk=postID, author=author)
         if post.contentType not in [Post.JPEG, Post.PNG]:
             return Response(status=404)
-        return Response(post.content)
+        # remove extra info we added when uploading file
+        content = post.content.split(',', 1)[1]
+        # HttpResponse seems to handle binary data better than Response
+        return HttpResponse(base64.b64decode(content.encode('utf-8')))
 
 
 class CommentDetail(APIView):
