@@ -12,8 +12,17 @@ from .models import Post, Comments, Comment
 from inbox.models import Inbox
 from authors.models import Author
 import uuid
-
+import requests
+from requests.auth import HTTPBasicAuth
+import json
 from rest_framework import permissions
+
+LOCAL_NODES = ['127.0.0.1:8000',
+               'http://127.0.0.1:8000',
+               'http://127.0.0.1:8000/',
+               'cmput404f22t17.herokuapp.com/',
+               'https://cmput404f22t17.herokuapp.com/',
+               'https://cmput404f22t17.herokuapp.com']
 
 class AuthenticatePost(permissions.BasePermission):
 
@@ -173,6 +182,12 @@ class PostList(APIView):
         data = {'type':'posts', 'items':data}
         return Response(data)
 
+    def _format_post_data_for_remote(self, post, remote_url):
+        if "socialdistribution-cmput404.herokuapp.com" in remote_url:
+            post = {"item": post}
+            print(post)
+        return post
+
     def post(self, request, author_id, format=None):
         '''
         Description:
@@ -183,11 +198,14 @@ class PostList(APIView):
         author_id: String
 
         Returns:
-        Response containing the new post with a status code of 200. If failed a message indicating failure will be sent instead with a status code of 204
+        Response containing the new post with a status code of 200. If failed a message indicating
+        failure will be sent instead with a status code of 204
         '''
-        url = request.build_absolute_uri()
-        serializer = self.serializer_class(data=request.data)
         author = Author.objects.get(pk=author_id)
+        is_local_author = author.host in LOCAL_NODES
+        url = author.url.strip('/') + '/posts/'
+        serializer = self.serializer_class(data=request.data)
+        
         postIDNew = uuid.uuid4()  # create a unique id for the post using the uuid library
         if serializer.is_valid():  # fetch fields
             title = serializer.data.get('title')
@@ -208,6 +226,7 @@ class PostList(APIView):
                 title=title,
                 description=description,
                 source=source,
+                origin=source,
                 content=content,
                 contentType=contentType,
                 author=author,
@@ -216,27 +235,80 @@ class PostList(APIView):
                 visibility=visibility,
                 unlisted=unlisted)
             post.save()
-            if visibility == 'PUBLIC':
-                Inboxs = Inbox.objects.all()
-                for inbox in Inboxs:
-                    inbox.items.insert(0, PostSerializer(post).data)
-                    inbox.save()
-            if visibility == 'FRIENDS':
-                followers = Author.objects.filter(following__id__in=[author_id]).values_list('id', flat=True)
-                # Add post to authors own inbox
-                url = request.build_absolute_uri().split("posts")[0]
-                inbox = get_object_from_url_or_404(Inbox, url)
-                inbox.items.insert(0, PostSerializer(post).data)
-                inbox.save()
-                # Add post to the inbox of everyone who follows the author
-                for follower in followers:
-                        url = request.build_absolute_uri().split(author_id)[0]
-                        url += follower + "/"
-                        inbox = get_object_from_url_or_404(Inbox, url)
-                        inbox.items.insert(0, PostSerializer(post).data)
-                        inbox.save()
+            post_data = PostSerializer(post).data
+            print("Saved post in DB")
+            # The following sends the newly created post to every relevant inbox
+            # ideally this would be extracted to a differnent method and there
+            # would be some utility that calls this endpoint then does this with
+            # the new post, but this will do for now
+            with requests.Session() as client:
+                # set the client auth if relevant session info is present
+                # otherwise we just make the requests without
+                if user_data := request.session.get('user_data'):
+                    client.auth = HTTPBasicAuth(user_data[0], user_data[1])
+
+                inboxs = set() # set containing urls for all relevant inbox endpoints
+
+                def get_items(req_url):
+                    # get request on urls with and without trailing '/'s
+                    response = client.get(req_url.strip('/'))
+                    if response.status_code >= 400:
+                        response = client.get(req_url.strip('/')+'/')
+                    return response
+
+                def add_followers():
+                    # add follower inbox endpoint to inboxs
+                    resp = get_items(author.url.strip('/')+'/followers')
+                    if resp.status_code < 400:
+                        friends = resp.content.decode('utf-8')
+                        friends = json.loads(friends)
+                        if type(friends) == dict:
+                            followers = friends.get('items')
+                            # these followers items should be authors
+                            for follower in followers:
+                                inboxs.add(follower['url'].strip('/')+'/inbox/')
+                        elif type(friends) == list:
+                            # asummed that this endpoint erroniously returned just a list of authors
+                            for follower in friends:
+                                inboxs.add(follower['url'].strip('/')+'/inbox/')
+        
+                if visibility.upper() == 'FRIENDS':
+                    add_followers()
+                elif visibility.upper() == 'PUBLIC':
+                    add_followers()
+                    print('added followers')
+                    # besides followers we need to get all local authors
+                    # this can be done more easily through the db with less risk of
+                    # errors. Note local authors in this case includes registered
+                    # remote authors on this server
+                    local_authors = Author.objects.all()
+                    for local_author in local_authors:
+                        inboxs.add(local_author.url.strip('/')+'/inbox/')
+                    print("added local authors")
+                    # and all remote authors on the server that hosts this author
+                    if not is_local_author:
+                        author_resp = get_items(author.host.strip('/')+'/authors')
+                        if author_resp.status_code < 400:
+                            author_resp = author_resp.content.decode('utf-8')
+                            remote_authors = json.loads(author_resp)
+                            for remote_author in remote_authors['items']:
+                                inboxs.add(remote_author['url'].strip('/')+'/inbox/')
+                    print("added remote authors")
+                # post the post to all the relevant inbox's
+                for url in inboxs:
+                    post_req_data = self._format_post_data_for_remote(post_data, url)
+                    print('POSTING to: ' + url)
+                    try:
+                        post_resp = client.post(url, json=post_req_data)
+                    except Exception as e:
+                        print(e)
+                if not is_local_author:
+                    print("PUTing to remote server", post_data['id'])
+                    #TODO for team 6 this doesn't put but does cause it to be posted to everyones inbox again
+                    #client.put(post_data['id'], json=post_data)
             return Response(PostSerializer(post).data, status=200)
         return Response('Post was unsuccessful. Please check the required information was filled out correctly again.', status=204)
+
 
 
 class ImageDetail(APIView):

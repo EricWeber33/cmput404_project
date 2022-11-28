@@ -292,6 +292,7 @@ def login_view(request):
             password = form.cleaned_data['password']
             # This is probably a security vulnerability
             request.session['user_data'] = [username, password]
+            request.session.save()
             user = authenticate(request, username=username, password=password)
             if user is not None:
                 if user.is_superuser:
