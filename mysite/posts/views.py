@@ -117,7 +117,7 @@ class PostDetail(APIView):
             post.save()
             return Response(UpdatePostSerializer(post).data, status=200)
         except:
-            return Response('POST was unsuccessful. Please check the required information was filled out correctly again.', status=204)
+            return Response('POST was unsuccessful. Please check the required information was filled out correctly again.', status=422)
 
     def put(self, request, author_id, postID, format=None):
         # PUT [local] create a post where its id is pk
