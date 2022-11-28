@@ -15,6 +15,8 @@ import uuid
 import requests
 from requests.auth import HTTPBasicAuth
 import json
+import sys
+import threading
 from rest_framework import permissions
 
 LOCAL_NODES = ['127.0.0.1:8000',
@@ -23,6 +25,16 @@ LOCAL_NODES = ['127.0.0.1:8000',
                'cmput404f22t17.herokuapp.com/',
                'https://cmput404f22t17.herokuapp.com/',
                'https://cmput404f22t17.herokuapp.com']
+
+def threaded_request(url, json_data, username, password):
+    # "solution" to heroku app being to slow to return from post endpoint
+    # this thread should be run as a 
+    try:
+        # we don't care about the response for these really so just continue if it takes over
+        # 5 seconds
+        requests.post(url, json=json_data, auth=HTTPBasicAuth(username, password), timeout=5)
+    except Exception:
+        pass
 
 class AuthenticatePost(permissions.BasePermission):
 
@@ -139,7 +151,7 @@ class PostDetail(APIView):
                 unlisted=unlisted)
             post.save()
             return Response(PostSerializer(post).data, status=200)
-        return Response('Post was unsuccessful. Please check the required information was filled out correctly again.', status=204)
+        return Response('Put was unsuccessful. Please check the required information was filled out correctly again.', status=422)
 
 
     def delete(self, request, author_id, postID, format=None):
@@ -255,11 +267,16 @@ class PostList(APIView):
             # ideally this would be extracted to a differnent method and there
             # would be some utility that calls this endpoint then does this with
             # the new post, but this will do for now
+            username = None
+            password = None
+            if user_data := request.session.get('user_data'):
+                username = user_data[0]
+                password = user_data[1]
             with requests.Session() as client:
                 # set the client auth if relevant session info is present
                 # otherwise we just make the requests without
-                if user_data := request.session.get('user_data'):
-                    client.auth = HTTPBasicAuth(user_data[0], user_data[1])
+                if username and password:
+                    client.auth = HTTPBasicAuth(username, password)
 
                 inboxs = set() # set containing urls for all relevant inbox endpoints
 
@@ -311,18 +328,13 @@ class PostList(APIView):
                 # post the post to all the relevant inbox's
                 for url in inboxs:
                     post_req_data = self._format_post_data_for_remote(post_data, url)
-                    print('POSTING to: ' + url)
-                    try:
-                        post_resp = client.post(url, json=post_req_data)
-                    except Exception as e:
-                        print(e)
+                    threading.Thread(target=threaded_request, args=(url, post_req_data, username, password)).start()
                 if not is_local_author:
                     print("PUTing to remote server", post_data['id'])
                     #TODO for team 6 this doesn't put but does cause it to be posted to everyones inbox again
                     #client.put(post_data['id'], json=post_data)
             return Response(PostSerializer(post).data, status=200)
-        return Response('Post was unsuccessful. Please check the required information was filled out correctly again.', status=404)
-
+        return Response('Post was unsuccessful. Please check the required information was filled out correctly again.', status=422)
 
 
 class ImageDetail(APIView):
