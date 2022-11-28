@@ -155,7 +155,7 @@ class PostDetail(APIView):
                 unlisted=unlisted)
             post.save()
             return Response(PostSerializer(post).data, status=200)
-        return Response('Post was unsuccessful. Please check the required information was filled out correctly again.', status=204)
+        return Response('Put was unsuccessful. Please check the required information was filled out correctly again.', status=422)
 
 
     def delete(self, request, author_id, postID, format=None):
@@ -338,7 +338,7 @@ class PostList(APIView):
                     #TODO for team 6 this doesn't put but does cause it to be posted to everyones inbox again
                     #client.put(post_data['id'], json=post_data)
             return Response(PostSerializer(post).data, status=200)
-        return Response('Post was unsuccessful. Please check the required information was filled out correctly again.', status=204)
+        return Response('Post was unsuccessful. Please check the required information was filled out correctly again.', status=422)
 
 
 
