@@ -135,9 +135,40 @@ class PostDetail(APIView):
             return Response(CreatePostSerializer(post).data, status=200)
         return Response(status=204)
 
-    def put(self, request, author, pk, format=None):
+    def put(self, request, author_id, postID, format=None):
         # PUT [local] create a post where its id is pk
-        pass
+        serializer = self.serializer_class(data=request.data)
+        author = Author.objects.get(pk=author_id)
+        url = request.build_absolute_uri(f'/authors/{author_id}/posts/{postID}')
+        if serializer.is_valid():  # fetch fields
+            title = serializer.data.get('title')
+            description = serializer.data.get('description')
+            content = serializer.data.get('content')
+            contentType = serializer.data.get('contentType')
+            visibility = serializer.data.get('visibility') #PUBLIC OR FRIENDS
+            unlisted = serializer.data.get('unlisted')
+            comments = f'{url}/comments'
+            commentsSrc = Comments.objects.create(
+                post= url,
+                id=f'{url}/comments'
+            )
+            # Create post object
+            post = Post.objects.create(
+                id=postID,
+                title=title,
+                description=description,
+                origin=url,
+                content=content,
+                contentType=contentType,
+                author=author,
+                comments=comments,
+                commentsSrc=commentsSrc,
+                visibility=visibility,
+                unlisted=unlisted)
+            post.save()
+            return Response(PostSerializer(post).data, status=200)
+        return Response('Put was unsuccessful. Please check the required information was filled out correctly again.', status=422)
+
 
     def delete(self, request, author_id, postID, format=None):
         '''
@@ -320,7 +351,7 @@ class PostList(APIView):
                     #TODO for team 6 this doesn't put but does cause it to be posted to everyones inbox again
                     #client.put(post_data['id'], json=post_data)
             return Response(PostSerializer(post).data, status=200)
-        return Response('Post was unsuccessful. Please check the required information was filled out correctly again.', status=204)
+        return Response('Post was unsuccessful. Please check the required information was filled out correctly again.', status=422)
 
 
 
