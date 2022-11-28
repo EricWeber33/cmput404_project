@@ -135,10 +135,10 @@ class InboxView(APIView):
             inbox.items.insert(0, request.data)
             inbox.save()
             inbox_serializer = InboxSerializer(inbox)
-            return Response(inbox_serializer.data)
+            return Response(inbox_serializer.data, status=200)
         except Exception as e:
             print(e)
-            return Response("Internal Error", status.HTTP_500_INTERNAL_SERVER_ERROR)
+            return Response("Internal Error", status=500)
 
     def delete(self, request, pk):
         '''
