@@ -143,10 +143,13 @@ def homepage_view(request, pk):
     password = request.session['user_data'][1]
     with requests.Session() as client:
         client.auth = HTTPBasicAuth(username, password)
-        url = author.url.strip('/') + '/inbox/'
-        inbox = client.get(url).content
-        inbox = inbox.decode('utf-8')
+        url = author.url.strip('/') + '/inbox'
+        inbox = client.get(url)
+        if not inbox or inbox.status_code >= 400:
+            inbox = client.get(url+'/')
+        inbox = inbox.content.decode('utf-8')
         inbox = json.loads(inbox)
+        print(inbox)
     # inbox uses a json schema which means updates wont be reflected 
     # here we get the items referenced from their host and replace them in the items box
     removal_list = [] # keep track of indexes of deleted inbox items
@@ -159,27 +162,33 @@ def homepage_view(request, pk):
                 removal_list.append(i)
             # like and comment notifications are less trivial to obtain,
             # and by their nature can probably be left up even if deleted
+
+            # this part is currently causing issues integrating with other groups, 
+            # if the other groups post PUT method isn't implemented this causes problems
+            """
             if i_type.lower() == 'post' or i_type.lower() == 'comment':
                 endpoint = 'id'
                 resp = client.get(inbox_items[i][endpoint])
                 if resp.status_code >= 400:
                     removal_list.append(i)
+                    print(i)
                 else:
                     item = resp.content
                     item = item.decode('utf-8')
                     item = json.loads(item)
                     inbox_items[i] = item
-                    if inbox_items[i]['type'].lower() == 'post':
-                        if not inbox_items[i].get('commentsSrc'):
-                            # commentSrc is optional so if it is absent we request
-                            # for the comments from the comments attribute
-                            resp = client.get(inbox_items[i]['comments'])
-                            if resp.status_code < 400:
-                                comments = resp.content
-                                comments = comments.decode('utf-8')
-                                inbox_items[i]['commentsSrc'] = json.loads(comments)
-                        if inbox_items[i]['contentType'] == 'text/markdown':
-                            inbox_items[i]['content'] = commonmark.commonmark(inbox_items[i]['content'])
+            """
+            if inbox_items[i]['type'].lower() == 'post':
+                if not inbox_items[i].get('commentsSrc'):
+                    # commentSrc is optional so if it is absent we request
+                    # for the comments from the comments attribute
+                    resp = client.get(inbox_items[i]['comments'])
+                    if resp.status_code < 400:
+                        comments = resp.content
+                        comments = comments.decode('utf-8')
+                        inbox_items[i]['commentsSrc'] = json.loads(comments)
+                if inbox_items[i]['contentType'] == 'text/markdown':
+                    inbox_items[i]['content'] = commonmark.commonmark(inbox_items[i]['content'])
     removal_list.reverse()
     for i in range(len(removal_list)):
         del inbox_items[removal_list[i]]
