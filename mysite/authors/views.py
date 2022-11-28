@@ -300,9 +300,9 @@ def login_view(request):
                     if user.author.verified:
                         login(request, user)
                         return HttpResponseRedirect('/authors/{}/home/'.format(urllib.parse.quote(user.author.id, safe='')))
-                form.add_error('Server Admin has not verified your account')
+                form.add_error(None, 'Server Admin has not verified your account. Login is avalible only once your account has been verified.')
             else:
-                form.add_error('Could not login that account')
+                form.add_error(None, 'Could not login into that account')
     else:
         form = LoginForm()
     return render(request, 'registration/login.html', {'form': form})
@@ -360,6 +360,7 @@ def register_view(request):
                 initialize_remote_user(remote_form.cleaned_data.pop('remote_author'),
                                        remote_form.cleaned_data.pop('username'),
                                        remote_form.cleaned_data.pop('password'))
+                return HttpResponseRedirect('/login/')
             except Exception as e:
                 #TODO clean up failed user creation in DB
                 raise e
