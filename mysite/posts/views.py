@@ -7,7 +7,7 @@ from authors.models import Author
 from authors.serializer import AuthorSerializer
 from .models import Comment, Comments, Like, Post
 from django.db.models import Q
-from .serializer import PostSerializer, CreatePostSerializer, CommentSerializer, CommentsSerializer, LikeSerializer
+from .serializer import PostSerializer, UpdatePostSerializer, CommentSerializer, CommentsSerializer, LikeSerializer
 from .models import Post, Comments, Comment
 from inbox.models import Inbox
 from authors.models import Author
@@ -61,9 +61,6 @@ def get_object_from_url_or_404(model, url):
 class PostDetail(APIView):
     permission_classes = (AuthenticatePost,)
     # URL: ://service/authors/{AUTHOR_ID}/posts/{POST_ID}
-
-    serializer_class = CreatePostSerializer
-
     def get(self, request, author_id, postID, format=None):
         '''
         Description:
@@ -95,33 +92,20 @@ class PostDetail(APIView):
         Returns:
         Response with an updated post and a status code of 200
         '''
-        serializer = self.serializer_class(data=request.data)
         author = Author.objects.get(pk=author_id)
         post = get_object_or_404(Post, pk=postID, author=author)
+        data = request.data
         # Fetch data
-        if serializer.is_valid():
-            title = serializer.data.get('title')
-            description = serializer.data.get('description')
-            source = serializer.data.get('source')
-            content = serializer.data.get('content')
-            visibility = serializer.data.get('visibility')
-            unlisted = serializer.data.get('unlisted')
-            # Update Post
-            if title != '' and title is not None:
-                post.title = title
-            if description != '' and description is not None:
-                post.description = description
-            if source != '' and source is not None:
-                post.source = source
-            if content != '' and content is not None:
-                post.content = content
-            if visibility != '' and visibility is not None:
-                post.visibility = visibility
-            if unlisted != '' and unlisted is not None:
-                post.unlisted = unlisted
+        try:
+            post.title = data.get('title', post.title)
+            post.description = data.get('description', post.description)
+            post.content = data.get('content', post.content)
+            post.visibility = data.get('visibility', post.visibility)
+            post.unlisted = data.get('unlisted', post.unlisted)
             post.save()
-            return Response(CreatePostSerializer(post).data, status=200)
-        return Response(status=204)
+            return Response(UpdatePostSerializer(post).data, status=200)
+        except:
+            return Response('POST was unsuccessful. Please check the required information was filled out correctly again.', status=204)
 
     def put(self, request, author_id, postID, format=None):
         # PUT [local] create a post where its id is pk
@@ -179,7 +163,6 @@ class PostDetail(APIView):
 
 class PostList(APIView):
     # URL ://service/authors/{AUTHOR_ID}/posts/
-    serializer_class = CreatePostSerializer
 
     def get(self, request, author_id, format=None):
         '''
@@ -338,7 +321,7 @@ class PostList(APIView):
                     #TODO for team 6 this doesn't put but does cause it to be posted to everyones inbox again
                     #client.put(post_data['id'], json=post_data)
             return Response(PostSerializer(post).data, status=200)
-        return Response('Post was unsuccessful. Please check the required information was filled out correctly again.', status=204)
+        return Response('Post was unsuccessful. Please check the required information was filled out correctly again.', status=404)
 
 
 
