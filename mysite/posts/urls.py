@@ -3,6 +3,7 @@ from rest_framework.urlpatterns import format_suffix_patterns
 from . import views
 
 urlpatterns = [
+    path('posts/', views.PostsList.as_view()),
     re_path('authors/(?P<author_pk>.*)/posts/(?P<post_pk>.*)/comments/(?P<comment_pk>.*)/likes/$',
              views.LikeCommentList.as_view()),
     re_path('authors/(?P<author_id>.*)/posts/(?P<post_id>.*)/comments/(?P<comment_id>.*)/$', views.CommentDetail.as_view()),

@@ -7,7 +7,7 @@ from authors.models import Author
 from authors.serializer import AuthorSerializer
 from .models import Comment, Comments, Like, Post
 from django.db.models import Q
-from .serializer import PostSerializer, CreatePostSerializer, CommentSerializer, CommentsSerializer, LikeSerializer
+from .serializer import PostSerializer, CreatePostSerializer, PostListSerializer, CommentSerializer, CommentsSerializer, LikeSerializer
 from .models import Post, Comments, Comment
 from inbox.models import Inbox
 from authors.models import Author
@@ -69,6 +69,36 @@ def get_object_from_url_or_404(model, url):
             return model.objects.get(pk=url)
         except model.DoesNotExist:
             raise Http404
+
+class PostsList(APIView):
+    #URL: ://service/allposts/
+
+    def get(self, request, format=None):
+        '''
+        Description:
+        Gets all posts with origin id matching our server and visiblity set to public
+
+        Params:
+        request: request
+
+        Returns:
+        Response containing all profiles
+        '''
+        posts = Post.objects.all().filter(visibility='PUBLIC').order_by('-published')
+        proper_origin = []
+        for post in posts:
+            for host in LOCAL_NODES:
+                if(host in post.origin):
+                    proper_origin.append(post.id)
+        print(proper_origin)
+        posts = posts.filter(id__in=proper_origin)
+
+        data = PostSerializer(posts, many=True).data
+        data = {'type':'posts', 'items':data}
+        if not PostListSerializer(data=data).is_valid():
+            return Response("Internal error", status.HTTP_500_INTERNAL_SERVER_ERROR)
+        return Response(data)
+
 
 class PostDetail(APIView):
     permission_classes = (AuthenticatePost,)
