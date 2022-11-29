@@ -70,7 +70,7 @@ def get_object_from_url_or_404(model, url):
         except model.DoesNotExist:
             raise Http404
 
-class PostsList(APIView):
+class PublicPostsList(APIView):
     #URL: ://service/posts/
 
     def get(self, request, format=None):
