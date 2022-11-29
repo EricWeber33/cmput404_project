@@ -15,6 +15,7 @@ from .forms import LoginForm, RegisterForm, RemoteRegisterForm
 from .models import Author, FollowRequest
 from inbox.models import Inbox
 import requests
+from requests.auth import HTTPBasicAuth
 import json
 import base64
 from .serializer import AuthorSerializer, AuthorListSerializer, FollowRequestSerializer
@@ -291,6 +292,7 @@ def login_view(request):
             password = form.cleaned_data['password']
             # This is probably a security vulnerability
             request.session['user_data'] = [username, password]
+            request.session.save()
             user = authenticate(request, username=username, password=password)
             if user is not None:
                 if user.is_superuser:
@@ -299,9 +301,9 @@ def login_view(request):
                     if user.author.verified:
                         login(request, user)
                         return HttpResponseRedirect('/authors/{}/home/'.format(urllib.parse.quote(user.author.id, safe='')))
-                form.add_error('Server Admin has not verified your account')
+                form.add_error(None, 'Server Admin has not verified your account. Login is avalible only once your account has been verified.')
             else:
-                form.add_error('Could not login that account')
+                form.add_error(None, 'Could not login into that account')
     else:
         form = LoginForm()
     return render(request, 'registration/login.html', {'form': form})
@@ -359,6 +361,7 @@ def register_view(request):
                 initialize_remote_user(remote_form.cleaned_data.pop('remote_author'),
                                        remote_form.cleaned_data.pop('username'),
                                        remote_form.cleaned_data.pop('password'))
+                return HttpResponseRedirect('/login/')
             except Exception as e:
                 #TODO clean up failed user creation in DB
                 raise e
@@ -371,10 +374,7 @@ def register_view(request):
 def initialize_remote_user(remote_author, username, password):
     host = remote_author.split('/authors/')[0]
     with requests.Session() as client:
-        # auth_str = "{}:{}".format(username, password).encode('utf-8')
-        # client.headers.update({
-        #     'Authorization': 'Basic {}'.format(base64.b64encode(auth_str))
-        # })
+        client.auth = HTTPBasicAuth(username, password)
         resp = client.get(remote_author)
         if hasattr(resp, 'data'):
             data = getattr(resp, 'data')

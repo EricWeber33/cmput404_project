@@ -34,6 +34,12 @@ class PostSerializer(serializers.ModelSerializer):
         fields = ('type', 'title', 'id', 'source', 'origin', 'description', 'contentType', 'content', 
             'author', 'categories', 'count', 'comments', 'commentsSrc', 'published', 'visibility', 'unlisted')
 
+    def to_representation(self, instance):
+        ret = super().to_representation(instance)
+        if "/" not in ret["id"]:
+            ret["id"] = f'{ret["author"]["url"].strip("/")}/posts/{ret["id"]}/'
+        return ret
+
 class LikeSerializer(serializers.ModelSerializer):
     author = AuthorSerializer()
     object = serializers.CharField()

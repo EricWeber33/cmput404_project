@@ -1,26 +1,28 @@
-from http import cookies
-from lib2to3.pgen2 import token
 from django.shortcuts import render
-from django.http import HttpResponseRedirect, Http404
+from django.http import HttpResponseRedirect
 from django.middleware.csrf import get_token
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.decorators import permission_classes
 from PIL import Image
 from inbox.models import Inbox
 from authors.models import Author
-from authors.serializer import AuthorSerializer
 from posts.models import Post, Comment, Comments
-from posts.serializer import PostSerializer, CommentSerializer
+from posts.serializer import CommentSerializer, PostSerializer
 from .forms import PostForm
 import uuid
-import datetime
-import requests 
+import requests
+from requests.auth import HTTPBasicAuth
 import json
 import commonmark
 import base64
 from io import BytesIO
 
-LOCAL_NODES = ['127.0.0.1:8000', 'https://cmput404f22t17.herokuapp.com/']
+LOCAL_NODES = ['127.0.0.1:8000',
+               'http://127.0.0.1:8000',
+               'http://127.0.0.1:8000/',
+               'cmput404f22t17.herokuapp.com/',
+               'https://cmput404f22t17.herokuapp.com/',
+               'https://cmput404f22t17.herokuapp.com']
 
 def get_object_from_url(model, url):
     """attempts to return a db item using a url as primary key"""
@@ -160,50 +162,64 @@ def comment_submit(request, pk):
         inbox.save()
     return HttpResponseRedirect(home_url)
 
+
 @permission_classes(IsAuthenticated,)
 def homepage_view(request, pk):
     url = request.build_absolute_uri().split('home/')[0]
     author = Author.objects.get(pk=url.strip('/').split('/')[-1])
     is_local_user = author.host in LOCAL_NODES
-    if is_local_user:
-        inbox = Inbox.objects.get(pk=url)
-    else:
-        username = request.session['user_data'][0]
-        password = request.session['user_data'][1]
-        with requests.Session() as client:
-            # client.headers.update({
-            #     'Authorization': f'Basic {username}:{password}'
-            # })
-            url = author.url.strip('/') + '/' + 'inbox'
-            inbox = client.get(url).content
-            inbox = inbox.decode('utf-8')
-            inbox = json.loads(inbox)
-           
+    username = request.session['user_data'][0]
+    password = request.session['user_data'][1]
+    with requests.Session() as client:
+        client.auth = HTTPBasicAuth(username, password)
+        url = author.url.strip('/') + '/inbox'
+        inbox = client.get(url)
+        if not inbox or inbox.status_code >= 400:
+            inbox = client.get(url+'/')
+        inbox = inbox.content.decode('utf-8')
+        inbox = json.loads(inbox)
+        print(inbox)
     # inbox uses a json schema which means updates wont be reflected 
-    # here we get the items referenced from db and replace them in the items box
+    # here we get the items referenced from their host and replace them in the items box
     removal_list = [] # keep track of indexes of deleted inbox items
-    if is_local_user:
-        inbox_items = inbox.items
-    else:
+    with requests.Session() as client:
+        client.auth = HTTPBasicAuth(username, password)
         inbox_items = inbox['items']
-    for i in range(len(inbox_items)):
-        if is_local_user:
-            if not 'type' in inbox_items[i].keys():
+        for i in range(len(inbox_items)):
+            i_type = inbox_items[i].get('type')
+            if not i_type:
                 removal_list.append(i)
-            elif inbox.items[i]['type'] == "post":
-                try:
-                    post = Post.objects.get(pk=inbox.items[i]['id'])
-                    inbox.items[i] = PostSerializer(post).data
-                    if inbox.items[i]['contentType'] == 'text/markdown':
-                        inbox.items[i]['content'] = commonmark.commonmark(inbox.items[i]['content'])
-                except Post.DoesNotExist:
+            # like and comment notifications are less trivial to obtain,
+            # and by their nature can probably be left up even if deleted
+
+            # this part is currently causing issues integrating with other groups, 
+            # if the other groups post PUT method isn't implemented this causes problems
+            """
+            if i_type.lower() == 'post' or i_type.lower() == 'comment':
+                endpoint = 'id'
+                resp = client.get(inbox_items[i][endpoint])
+                if resp.status_code >= 400:
                     removal_list.append(i)
-            elif inbox.items[i]['type'] == "comment":
-                pass
+                    print(i)
+                else:
+                    item = resp.content
+                    item = item.decode('utf-8')
+                    item = json.loads(item)
+                    inbox_items[i] = item
+            """
+            if inbox_items[i]['type'].lower() == 'post':
+                if not inbox_items[i].get('commentsSrc'):
+                    # commentSrc is optional so if it is absent we request
+                    # for the comments from the comments attribute
+                    resp = client.get(inbox_items[i]['comments'])
+                    if resp.status_code < 400:
+                        comments = resp.content
+                        comments = comments.decode('utf-8')
+                        inbox_items[i]['commentsSrc'] = json.loads(comments)
+                if inbox_items[i]['contentType'] == 'text/markdown':
+                    inbox_items[i]['content'] = commonmark.commonmark(inbox_items[i]['content'])
     removal_list.reverse()
     for i in range(len(removal_list)):
-        del inbox.items[removal_list[i]]
-    if is_local_user:
-        inbox.save()
+        del inbox_items[removal_list[i]]
     post_form = PostForm()
     return render(request, 'homepage/home.html', {'type': 'inbox', 'items': inbox_items, "post_form": post_form})
