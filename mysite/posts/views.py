@@ -388,7 +388,7 @@ class LikePostList(APIView):
             author_display_name = AuthorSerializer(
                 author, many=False).data["displayName"]
             
-            object=f"{request.build_absolute_uri('/')}authors/{author_pk}/posts/{post_pk}"
+            object=f"{request.build_absolute_uri('/')}authors/{author_pk}/posts/{post_pk}/"
             like = Like.objects.all().filter(object=object, author=author)
 
             #if like doesnt exist, create a new like object
@@ -397,11 +397,18 @@ class LikePostList(APIView):
                     context=f"TODO",
                     author=author,
                     summary=f"{author_display_name} likes your post",
-                    object=f"{request.build_absolute_uri('/')}authors/{author_pk}/posts/{post_pk}"
+                    object=object
                 )
 
                 like_post.save()
                 like_post_serializer = LikeSerializer(like_post)
+
+                # send the like to object authors inbox
+                post = Post.objects.get(source=object)
+                object_author_inbox = Inbox.objects.get(author=post.author.url)
+                object_author_inbox.items.insert(0, like_post_serializer.data)
+                object_author_inbox.save()
+
                 return Response(like_post_serializer.data)
             else:
                 return Response("You have liked this post already", status=status.HTTP_403_FORBIDDEN)
@@ -457,7 +464,7 @@ class LikeCommentList(APIView):
             author_display_name = AuthorSerializer(
                 author, many=False).data["displayName"]
 
-            object=f"{request.build_absolute_uri('/')}authors/{author_pk}/posts/{post_pk}/comments/{comment_pk}"
+            object=f"{request.build_absolute_uri('/')}authors/{author_pk}/posts/{post_pk}/comments/{comment_pk}/"
             like = Like.objects.all().filter(object=object, author=author)
             
             #if like doesnt exist, create a new like object
@@ -471,6 +478,13 @@ class LikeCommentList(APIView):
 
                 like_comment.save()
                 like_comment_serializer = LikeSerializer(like_comment)
+
+                # send the like to object authors inbox
+                comment = Comment.objects.get(id=comment_pk)
+                object_author_inbox = Inbox.objects.get(author=comment.author.url)
+                object_author_inbox.items.insert(0, like_comment_serializer.data)
+                object_author_inbox.save()
+
                 return Response(like_comment_serializer.data)
             else:
                 return Response("You have liked this comment already", status=status.HTTP_403_FORBIDDEN)
