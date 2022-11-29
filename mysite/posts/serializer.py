@@ -40,6 +40,10 @@ class PostSerializer(serializers.ModelSerializer):
             ret["id"] = f'{ret["author"]["url"].strip("/")}/posts/{ret["id"]}/'
         return ret
 
+class PostListSerializer(serializers.Serializer):
+    type = serializers.CharField()
+    items = PostSerializer(many=True)
+
 class LikeSerializer(serializers.ModelSerializer):
     author = AuthorSerializer()
     object = serializers.CharField()
