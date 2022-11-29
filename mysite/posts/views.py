@@ -71,7 +71,7 @@ def get_object_from_url_or_404(model, url):
             raise Http404
 
 class PostsList(APIView):
-    #URL: ://service/allposts/
+    #URL: ://service/posts/
 
     def get(self, request, format=None):
         '''
@@ -90,9 +90,7 @@ class PostsList(APIView):
             for host in LOCAL_NODES:
                 if(host in post.origin):
                     proper_origin.append(post.id)
-        print(proper_origin)
         posts = posts.filter(id__in=proper_origin)
-
         data = PostSerializer(posts, many=True).data
         data = {'type':'posts', 'items':data}
         if not PostListSerializer(data=data).is_valid():
