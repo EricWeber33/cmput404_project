@@ -72,7 +72,7 @@ def get_object_from_url_or_404(model, url):
 
 class PublicPostsList(APIView):
     #URL: ://service/posts/
-
+    serializer_class = PostListSerializer
     def get(self, request, format=None):
         '''
         Description:
@@ -406,6 +406,7 @@ class ImageDetail(APIView):
 
 
 class CommentDetail(APIView):
+    serializer_class = CommentSerializer
     def get(self, request, author_id, post_id, comment_id):
         '''
         Description:
@@ -432,6 +433,7 @@ class CommentDetail(APIView):
 
 class CommentList(APIView):
     # URL: ://service/authors/{AUTHOR_ID}/posts/{POST_ID}/comments
+    serializer_class = CommentsSerializer
     def get(self, request, author_id, post_id):
         '''
         Description:
@@ -500,7 +502,7 @@ class CommentList(APIView):
 
 class LikePostList(APIView):
     # URL: ://service/authors/{AUTHOR_ID}/posts/{POST_ID}/likes
-
+    serializer_class = LikeSerializer
     def get(self, request, author_pk, post_pk):
         '''
         Description:
@@ -556,7 +558,7 @@ class LikePostList(APIView):
 
 class LikeCommentList(APIView):
     # URL: ://service/authors/{AUTHOR_ID}/posts/{POST_ID}/comments/{COMMENT_ID}/likes
-
+    serializer_class = LikeSerializer
     def get(self, request, author_pk, post_pk, comment_pk):
         '''
         Description:
@@ -616,6 +618,7 @@ class LikeCommentList(APIView):
 
 class AuthorLikesList(APIView):
     # URL: ://service/authors/{AUTHOR_ID}/liked
+    serializer_class = LikeSerializer
     def get(self, request, author_pk):
         '''
         Description:
