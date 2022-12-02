@@ -53,6 +53,7 @@ def get_object_from_url_or_404(model, url):
         
 class InboxView(APIView):
     permission_classes = (IsPostOrIsAuthenticated,)
+    serializer_class = InboxSerializer
     # URL:://service/authors/{AUTHOR_ID}/inbox
     def get(self, request, pk, format=None):
         '''
