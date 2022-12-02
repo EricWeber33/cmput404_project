@@ -1,4 +1,5 @@
 {% block post %}
+<script src="https://kit.fontawesome.com/adfcecb43a.js" crossorigin="anonymous"></script>
 <div class="inbox_block">
     <div class="post_headline">
         <div class="title">
@@ -20,6 +21,13 @@
     {% else %}
         <p>{{item.content}}</p>
     {% endif %}
+    <form action={{"like_post_submit/"|add:item.id|add:"/"}} method="post">
+        {% csrf_token %}
+        <div class="like_box">
+            <button type="submit" id="like_post_button"><i class="fa fa-thumbs-up"></i></button>
+            <p>{{item.like_count}}</p>
+        </div>
+    </form>
     <form method="post", action="comment_submit/">
         {% csrf_token %}
         <input type="text" name="comment" placeholder="enter your comment here">
