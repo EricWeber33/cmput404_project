@@ -15,6 +15,7 @@ from requests.auth import HTTPBasicAuth
 import json
 import commonmark
 import base64
+import threading
 from io import BytesIO
 
 LOCAL_NODES = ['127.0.0.1:8000',
@@ -37,7 +38,92 @@ def get_object_from_url(model, url):
             return model.objects.get(pk=url)
         except model.DoesNotExist:
             return None
+
+def threaded_request(url, json_data, username, password):
+    # "solution" to heroku app being to slow to return from post endpoint
+    # this thread should be run as a 
+    try:
+        # we don't care about the response for these really so just continue if it takes over
+        # 5 seconds
+        requests.post(url, json=json_data, auth=HTTPBasicAuth(username, password), timeout=5)
+    except Exception:
+        pass
+
+def _format_post_data_for_remote(post, remote_url):
+    if "socialdistribution-cmput404.herokuapp.com" in remote_url:
+        post = {"item": post}
+        print(post)
+    return post
+
+def send_post_to_inboxs(request, post_json, author_id):
+    '''Send newly created post object to relevant inbox
+       @param post_json: json representation of post object
+       @param author_id: author that is sending the post
+                      used to get relevant remote followers
+    '''
+    post_json = json.loads(post_json)
+    author = Author.objects.get(pk=author_id)
+    is_local_author = author.host in LOCAL_NODES
+    username = None
+    password = None
+    TEAM_6 = "socialdistribution-cmput404.herokuapp.com"
+    if user_data := request.session.get('user_data'):
+        username = user_data[0]
+        password = user_data[1]
+    inboxs = set()
+    with requests.Session() as client:
+        # set the client auth if relevant session info is present
+        # otherwise we just make the requests without
+        if username and password:
+                client.auth = HTTPBasicAuth(username, password)
+        def get_items(req_url):
+                    # get request on urls with and without trailing '/'s
+                    response = client.get(req_url.strip('/'))
+                    if response.status_code >= 400:
+                        response = client.get(req_url.strip('/')+'/')
+                    return response
+        def add_followers():
+            # add follower inbox endpoint to inboxs
+            resp = get_items(author.url.strip('/')+'/followers')
+            if resp.status_code < 400:
+                friends = resp.content.decode('utf-8')
+                friends = json.loads(friends)
+                if type(friends) == dict:
+                    followers = friends.get('items')
+                    # these followers items should be authors
+                    if not followers:
+                        return
+                    for follower in followers:
+                        inboxs.add(follower['url'].strip('/')+'/inbox/')
+                elif type(friends) == list:
+                    # asummed that this endpoint erroniously returned just a list of authors
+                    for follower in friends:
+                        inboxs.add(follower['url'].strip('/')+'/inbox/')
+        if post_json['visibility'].upper() == "PUBLIC":
+            # add all local + remote inboxs to inbox set
+            local_authors = Author.objects.all()
+            for local_author in local_authors:
+                inboxs.add(local_author.url.strip('/')+'/inbox/')
+            print("added local authors")
+            # and all remote authors on the server that hosts this author
+            if not is_local_author and TEAM_6 not in author.host:
+                author_resp = get_items(author.host.strip('/')+'/authors')
+                if author_resp.status_code < 400:
+                    author_resp = author_resp.content.decode('utf-8')
+                    remote_authors = json.loads(author_resp)
+                    for remote_author in remote_authors['items']:
+                        inboxs.add(remote_author['url'].strip('/')+'/inbox/')
+            print("added remote authors")
+        # add followers to set
+        add_followers()
+        for url in inboxs:
+            post_req_data = _format_post_data_for_remote(post_json, url)
+            threading.Thread(target=threaded_request, args=(url, post_req_data, username, password)).start()
+        if not is_local_author:
+            print("PUTing to remote server", post_json['id'])
+            client.put(post_json['id'], json=post_json)
         
+
 @permission_classes(IsAuthenticated,)
 def post_submit(request, pk):
     url = request.build_absolute_uri()
@@ -87,7 +173,11 @@ def post_submit(request, pk):
                     'sessionid': request.session.session_key,
                     'csrftoken': get_token(request)
                 }
-                client.post(post_endpoint, cookies=cookies, data=post_data)
+                post = client.post(post_endpoint, cookies=cookies, data=post_data, headers={'accept':'application/json'})
+                print(post.status_code)
+                if post.status_code < 400:
+                    post = post.content.decode('utf-8')
+                    send_post_to_inboxs(request, post, pk)
     return HttpResponseRedirect(home_url)
         
 @permission_classes(IsAuthenticated,)
