@@ -38,6 +38,13 @@
     <div class="comment">
         <a href="{{ comment.author.url }}"> {{ comment.author.displayName }}</a>
         <p>{{comment.comment}}</p>
+        <form action={{"like_comment_submit/"|add:item.comments|add:"/"|add:comment.id|add:"/"}} method="post">
+            {% csrf_token %}
+            <div class="like_box">
+                <button type="submit" id="like_comment_button"><i class="fa fa-thumbs-up"></i></button>
+                <p>{{items.comment.like_count}}</p>
+            </div>
+        </form>
     </div>
     {% endfor %}
 </div>

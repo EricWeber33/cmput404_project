@@ -160,6 +160,11 @@ def homepage_view(request, pk):
                 removal_list.append(i)
         elif inbox.items[i]['type'] == "comment":
             pass
+        elif inbox.items[i]['type'] == "Like":
+            if 'comments' in inbox.items[i]['object'] :
+                inbox.items[i]["object_type"] = "comment"
+            else:
+                inbox.items[i]["object_type"] = "post"
     removal_list.reverse()
     for i in range(len(removal_list)):
         del inbox.items[removal_list[i]]
@@ -214,3 +219,26 @@ def like_post_submit(request, pk, post_id):
     return HttpResponseRedirect(home_url)
 
 '''
+
+@permission_classes(IsAuthenticated,)
+def like_comment_submit(request, pk, comments, comment_id):
+    
+    comment = get_object_from_url(Comment, comment_id)
+    url = request.build_absolute_uri()
+    home_url = url.split('/home/')[0] + "/home/"
+    comment_url = comments + comment_id + '/'
+    #TODO use the endpoint instead
+    like_obj = Like.objects.all().filter(object=comment_url, author=request.user.author)
+    if len(like_obj) == 0:
+        like = Like.objects.create(
+        context=f"TODO",
+        author=request.user.author,
+        summary=f"{request.user.author.displayName} likes your comment",
+        object=comment_url
+        )
+        like.save()
+        inbox_author_url = comment_url.split('posts/')[0]
+        inbox = Inbox.objects.get(author=inbox_author_url)
+        inbox.items.insert(0, LikeSerializer(like).data)
+        inbox.save()
+    return HttpResponseRedirect(home_url)

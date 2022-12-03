@@ -266,10 +266,13 @@ class CommentDetail(APIView):
         Returns:
         Returns a response containing the comment
         '''
-        url = request.build_absolute_uri()
-        comment = get_object_from_url_or_404(Comment, url)
-        serializer = CommentSerializer(comment)
-        return Response(serializer.data)
+        try:
+            comment = Comment.objects.get(id=comment_id)
+            serializer = CommentSerializer(comment)
+            return Response(serializer.data)
+        
+        except Comment.DoesNotExist:
+            return Response('Comment doesn\'t exist', status=status.HTTP_404_NOT_FOUND)
 
     def post(self, request, author_id, post_id, comment_id):
         # POST [local] update a comment
@@ -480,8 +483,8 @@ class LikeCommentList(APIView):
                 like_comment_serializer = LikeSerializer(like_comment)
 
                 # send the like to object authors inbox
-                comment = Comment.objects.get(id=comment_pk)
-                object_author_inbox = Inbox.objects.get(author=comment.author.url)
+                inbox_author_url = object.split('posts/')[0]
+                object_author_inbox = Inbox.objects.get(author=inbox_author_url)
                 object_author_inbox.items.insert(0, like_comment_serializer.data)
                 object_author_inbox.save()
 
