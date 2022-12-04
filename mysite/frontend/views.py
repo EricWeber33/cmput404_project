@@ -313,10 +313,11 @@ def homepage_view(request, pk):
 @permission_classes(IsAuthenticated,)
 def like_post_submit(request, pk, post_id):
     
-    post = get_object_from_url(Post, post_id)
+    postID = post_id.split('/posts/')[1][:-1]
+    post = get_object_from_url(Post, postID)
     url = request.build_absolute_uri()
     home_url = url.split('/home/')[0] + "/home/"
-    post_like_endpoint = post.author.url + 'posts/' + post.id + '/likes/'
+    post_like_endpoint = post_id + 'likes/'
 
     if request.method == 'POST':
         with requests.Session() as client:
