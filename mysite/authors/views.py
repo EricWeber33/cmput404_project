@@ -347,7 +347,8 @@ def register_view(request):
                     displayName=displayName,
                     github=github,
                     profileImage=profileImage,
-                    user=user
+                    user=user,
+                    verified=True
                 )
                 inbox = Inbox.objects.create(author=user_url)
                 user.save()
