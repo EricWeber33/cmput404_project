@@ -463,6 +463,7 @@ class LikeCommentList(APIView):
 
         if request.user.is_authenticated:
 
+            comment = Comment.objects.get(id=comment_pk)
             author = Author.objects.get(pk=request.user.author.id)
             author_display_name = AuthorSerializer(
                 author, many=False).data["displayName"]
@@ -483,8 +484,7 @@ class LikeCommentList(APIView):
                 like_comment_serializer = LikeSerializer(like_comment)
 
                 # send the like to object authors inbox
-                inbox_author_url = object.split('posts/')[0]
-                object_author_inbox = Inbox.objects.get(author=inbox_author_url)
+                object_author_inbox = Inbox.objects.get(author=comment.author.url)
                 object_author_inbox.items.insert(0, like_comment_serializer.data)
                 object_author_inbox.save()
 
