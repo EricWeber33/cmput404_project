@@ -19,10 +19,15 @@ import sys
 import threading
 from rest_framework import permissions
 
-LOCAL_NODES = ['127.0.0.1:8000',
+import os
+
+on_heroku = 'DYN0' in os.environ
+if not on_heroku:
+    LOCAL_NODES = ['127.0.0.1:8000',
                'http://127.0.0.1:8000',
-               'http://127.0.0.1:8000/',
-               'cmput404f22t17.herokuapp.com/',
+               'http://127.0.0.1:8000/']
+else:
+    LOCAL_NODES = ['cmput404f22t17.herokuapp.com/',
                'https://cmput404f22t17.herokuapp.com/',
                'https://cmput404f22t17.herokuapp.com']
 
