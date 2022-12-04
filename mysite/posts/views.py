@@ -267,6 +267,7 @@ class PostList(APIView):
         Response containing the new post with a status code of 200. If failed a message indicating
         failure will be sent instead with a status code of 204
         '''
+        print(author_id)
         author = Author.objects.get(pk=author_id)
         url = author.url.strip('/') + '/posts/'
         serializer = self.serializer_class(data=request.data)
@@ -412,15 +413,20 @@ class CommentList(APIView):
         comments_list = get_object_from_url_or_404(Comments, url)
         if not CommentSerializer(data=data_copy).is_valid():
             return Response('Invalid comment object', status=status.HTTP_400_BAD_REQUEST)
+        print(request.data['author'])
+        print(request.data['author']['id'].strip('/').split('/')[-1])
+        comment_author = Author.objects.get(pk=request.data['author']['id'].strip('/').split('/')[-1])
+        print(comment_author)
         comment_single = Comment(
-            author=Author.objects.get(pk=request.data['author']['id']),
+            author=comment_author,
             comment=request.data['comment'],
             published=request.data['published'],
             id=request.data['id'])
+        comment_single.save()
         comments_list.comments.add(comment_single)
         comments_list.save()
-        comments_serializer = CommentsSerializer(comments_list)
-        return Response(comments_serializer.data)
+        return Response(CommentSerializer(comment_single).data, status=200)
+
 
 class LikePostList(APIView):
     # URL: ://service/authors/{AUTHOR_ID}/posts/{POST_ID}/likes

@@ -6,6 +6,7 @@ from rest_framework.decorators import permission_classes
 from PIL import Image
 from inbox.models import Inbox
 from authors.models import Author
+from authors.serializer import AuthorSerializer
 from posts.models import Post, Comment, Comments
 from posts.serializer import CommentSerializer
 from .forms import PostForm
@@ -16,6 +17,7 @@ import json
 import commonmark
 import base64
 import threading
+import datetime
 from io import BytesIO
 
 LOCAL_NODES = ['127.0.0.1:8000',
@@ -179,48 +181,41 @@ def post_submit(request, pk):
                     post = post.content.decode('utf-8')
                     send_post_to_inboxs(request, post, pk)
     return HttpResponseRedirect(home_url)
-        
+
 @permission_classes(IsAuthenticated,)
 def comment_submit(request, pk):
+    print(request.POST['endpoint'])
     url = request.build_absolute_uri()
     home_url = url.split('/home/')[0] + "/home/"
+    username = None
+    password = None
+    if request.session.get('user_data'):
+        username = request.session['user_data'][0]
+        password = request.session['user_data'][1]
+
     if request.method == 'POST':
-       
-        # TODO use the endpoint instead of the model view
-        # attempt at this below
-        """
-        client = requests.Session()
+        # remote authors should have a proper representation in our db
+        # so we can do this
+        print(pk)
         author = Author.objects.get(pk=pk)
-        author = json.dumps(AuthorSerializer(author).data)
-        cookies = {
-            'sessionid': request.session.session_key,
-            'csrftoken': get_token(request)
+        with requests.Session() as client:
+            if username and password:
+                client.auth = HTTPBasicAuth(username, password)
+            comment_data = {
+                'author': AuthorSerializer(author).data,
+                'comment': request.POST['comment'],
+                'published': str(datetime.datetime.now()),
+                'id': uuid.uuid4().hex
             }
-        data = {
-            'csrfmiddlewaretoken': get_token(request),
-            'author': author,
-            'comment':request.POST['comment'],
-            'published': str(datetime.datetime.now()),
-            'id': uuid.uuid4().hex
-        }
-        client.post(request.POST['endpoint'], cookies=cookies, data=data)
-        """
-        author = Author.objects.get(pk=pk)
-        comment = Comment.objects.create(
-            author=author,
-            comment=request.POST['comment'],
-            id=uuid.uuid4().hex
-        )
-        comment_src = get_object_from_url(Comments, request.POST['endpoint'])
-        if comment_src != None:
-            comment_src.comments.add(comment)
-        comment.save()
-        comment_src.save()
-        # send notification to post authors inbox
-        recipient_author_inbox = request.POST['endpoint'].split('/posts/')[0]
-        inbox = get_object_from_url(Inbox, recipient_author_inbox)
-        inbox.items.insert(0, CommentSerializer(comment).data)
-        inbox.save()
+            headers = {
+                'accept': 'application/json'
+            }
+            comment = client.post(request.POST['endpoint'], headers=headers, json=comment_data)
+            print(comment.status_code)
+            if comment.status_code < 400:
+                comment = json.loads(comment.content.decode('utf-8'))
+                inbox_url = request.POST['endpoint'].split('posts/')[0] + 'inbox'
+                threaded_request(inbox_url, comment, username, password)
     return HttpResponseRedirect(home_url)
 
 
@@ -239,7 +234,6 @@ def homepage_view(request, pk):
             inbox = client.get(url+'/')
         inbox = inbox.content.decode('utf-8')
         inbox = json.loads(inbox)
-        print(inbox)
     # inbox uses a json schema which means updates wont be reflected 
     # here we get the items referenced from their host and replace them in the items box
     removal_list = [] # keep track of indexes of deleted inbox items
@@ -269,14 +263,12 @@ def homepage_view(request, pk):
                     inbox_items[i] = item
             """
             if inbox_items[i]['type'].lower() == 'post':
-                if not inbox_items[i].get('commentsSrc'):
-                    # commentSrc is optional so if it is absent we request
-                    # for the comments from the comments attribute
-                    resp = client.get(inbox_items[i]['comments'])
-                    if resp.status_code < 400:
-                        comments = resp.content
-                        comments = comments.decode('utf-8')
-                        inbox_items[i]['commentsSrc'] = json.loads(comments)
+                # commentSrc is optional so if it is absent we request
+                # for the comments from the comments attribute
+                resp = client.get(inbox_items[i]['comments'])
+                if resp.status_code < 400:
+                    comments = resp.content.decode('utf-8')
+                    inbox_items[i]['commentsSrc'] = json.loads(comments)
                 if inbox_items[i]['contentType'] == 'text/markdown':
                     inbox_items[i]['content'] = commonmark.commonmark(inbox_items[i]['content'])
     removal_list.reverse()
