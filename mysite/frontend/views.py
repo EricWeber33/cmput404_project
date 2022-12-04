@@ -7,6 +7,12 @@ from PIL import Image
 from inbox.models import Inbox
 from authors.models import Author
 from authors.serializer import AuthorSerializer
+from posts.models import Post, Comment, Comments, Like
+from posts.serializer import PostSerializer, CommentSerializer, LikeSerializer
+from .forms import PostForm
+import uuid
+import datetime
+import requests
 from posts.models import Post, Comment, Comments
 from posts.serializer import CommentSerializer
 from .forms import PostForm
@@ -32,6 +38,7 @@ else:
                'https://cmput404f22t17.herokuapp.com']
 
 TEAM_6 = "socialdistribution-cmput404.herokuapp.com"
+
 
 def get_object_from_url(model, url):
     """attempts to return a db item using a url as primary key"""
@@ -158,13 +165,15 @@ def post_submit(request, pk):
                     # supplied an image but didn't say the content type was an image
                     # should this throw an error?
                     pass
-                image.save(buffer, format=file_type) # write the image data to the buffer so it can be encoded
-                content = 'data:'+ content_type + ',' + base64.b64encode(buffer.getvalue()).decode('utf-8')
+                # write the image data to the buffer so it can be encoded
+                image.save(buffer, format=file_type)
+                content = 'data:' + content_type + ',' + \
+                    base64.b64encode(buffer.getvalue()).decode('utf-8')
             post_data = {
                 "csrfmiddlewaretoken": get_token(request),
                 "title": title,
                 "description": description,
-                "content": content, 
+                "content": content,
                 "contentType": content_type,
                 "source": "",
                 "visibility": visibility,
@@ -187,6 +196,7 @@ def post_submit(request, pk):
                     post = post.content.decode('utf-8')
                     send_post_to_inboxs(request, post, pk)
     return HttpResponseRedirect(home_url)
+
 
 @permission_classes(IsAuthenticated,)
 def comment_submit(request, pk):
@@ -264,7 +274,7 @@ def homepage_view(request, pk):
                 # team 6 post PUT /postlist get seem to not be interacting well
                 # so we just take whats in the inbox instead of updating
                 if not TEAM_6 in inbox_items[i]['id']:
-                    resp = client.get(inbox_items[i]['id'])
+                    resp = client.get(inbox_items[i]['source'])
                     if resp.status_code >= 400:
                         removal_list.append(i)
                     else:
@@ -282,8 +292,76 @@ def homepage_view(request, pk):
                             inbox_items[i]['commentsSrc'] = json.loads(comments)
                         if inbox_items[i]['contentType'] == 'text/markdown':
                             inbox_items[i]['content'] = commonmark.commonmark(inbox_items[i]['content'])
+                        inbox_items[i]['like_count'] = Like.objects.filter(
+                            object=inbox_items[i]['source']).count()
+                        for comment in inbox_items[i]['commentsSrc']["comments"] :
+                            comment["like_count"] = Like.objects.filter(
+                                object=inbox_items[i]['commentsSrc']["id"]+comment["id"]+'/').count()
+            elif inbox_items[i]['type'] == "Like":
+                if 'comments' in inbox_items[i]['object'] :
+                    inbox_items[i]["object_type"] = "comment"
+                else:
+                    inbox_items[i]["object_type"] = "post"
+
     removal_list.reverse()
     for i in range(len(removal_list)):
         del inbox_items[removal_list[i]]
     post_form = PostForm()
     return render(request, 'homepage/home.html', {'type': 'inbox', 'items': inbox_items, "post_form": post_form})
+
+
+@permission_classes(IsAuthenticated,)
+def like_post_submit(request, pk, post_id):
+    
+    postID = post_id.split('/posts/')[1][:-1]
+    post = get_object_from_url(Post, postID)
+    url = request.build_absolute_uri()
+    home_url = url.split('/home/')[0] + "/home/"
+    post_like_endpoint = post_id + 'likes/'
+
+    if request.method == 'POST':
+        with requests.Session() as client:
+            client.headers.update(request.headers)
+            like_data = {
+                "csrfmiddlewaretoken": get_token(request)
+            }
+            client.headers.update({
+                'Content-Type': None,
+                'Content-Length': None,
+            })
+            cookies = {
+                'sessionid': request.session.session_key,
+                'csrftoken': get_token(request)
+            }
+            client.post(post_like_endpoint, cookies=cookies, data=like_data)
+    
+    return HttpResponseRedirect(home_url)
+
+
+
+@permission_classes(IsAuthenticated,)
+def like_comment_submit(request, pk, comments, comment_id):
+    
+    comment = get_object_from_url(Comment, comment_id)
+    url = request.build_absolute_uri()
+    home_url = url.split('/home/')[0] + "/home/"
+    comment_like_url = comments + comment_id + '/likes/'
+    
+    if request.method == 'POST':
+        with requests.Session() as client:
+            client.headers.update(request.headers)
+            like_data = {
+                "csrfmiddlewaretoken": get_token(request)
+            }
+            client.headers.update({
+                'Content-Type': None,
+                'Content-Length': None,
+            })
+            cookies = {
+                'sessionid': request.session.session_key,
+                'csrftoken': get_token(request)
+            }
+            client.post(comment_like_url, cookies=cookies, data=like_data)
+    
+    return HttpResponseRedirect(home_url)
+
