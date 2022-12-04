@@ -4,5 +4,6 @@ from . import views
 
 urlpatterns = [
     re_path('authors/(?P<pk>.*)/inbox/$', views.InboxView.as_view()),
+    re_path('authors/(?P<pk>.*)/inbox$', views.InboxView.as_view())
 ]
 
