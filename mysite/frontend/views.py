@@ -27,6 +27,8 @@ LOCAL_NODES = ['127.0.0.1:8000',
                'https://cmput404f22t17.herokuapp.com/',
                'https://cmput404f22t17.herokuapp.com']
 
+TEAM_6 = "socialdistribution-cmput404.herokuapp.com"
+
 def get_object_from_url(model, url):
     """attempts to return a db item using a url as primary key"""
     try:
@@ -68,7 +70,6 @@ def send_post_to_inboxs(request, post_json, author_id):
     is_local_author = author.host in LOCAL_NODES
     username = None
     password = None
-    TEAM_6 = "socialdistribution-cmput404.herokuapp.com"
     if user_data := request.session.get('user_data'):
         username = user_data[0]
         password = user_data[1]
@@ -103,22 +104,23 @@ def send_post_to_inboxs(request, post_json, author_id):
                         inboxs.add(follower['url'].strip('/')+'/inbox/')
         if post_json['visibility'].upper() == "PUBLIC":
             # add all local + remote inboxs to inbox set
-            local_authors = Author.objects.all()
+            local_authors = Author.objects.all().filter(host__in=LOCAL_NODES)
             for local_author in local_authors:
                 inboxs.add(local_author.url.strip('/')+'/inbox/')
             print("added local authors")
             # and all remote authors on the server that hosts this author
-            if not is_local_author and TEAM_6 not in author.host:
+            if not is_local_author and not TEAM_6 in author.host:
                 author_resp = get_items(author.host.strip('/')+'/authors')
                 if author_resp.status_code < 400:
                     author_resp = author_resp.content.decode('utf-8')
                     remote_authors = json.loads(author_resp)
                     for remote_author in remote_authors['items']:
-                        inboxs.add(remote_author['url'].strip('/')+'/inbox/')
-            print("added remote authors")
+                        inboxs.add(remote_author['url'].strip('/')+'/inbox')
+                print("added remote authors")
         # add followers to set
         add_followers()
         for url in inboxs:
+            print("sending post to: " + url)
             post_req_data = _format_post_data_for_remote(post_json, url)
             threading.Thread(target=threaded_request, args=(url, post_req_data, username, password)).start()
         if not is_local_author:
@@ -224,6 +226,7 @@ def homepage_view(request, pk):
     url = request.build_absolute_uri().split('home/')[0]
     author = Author.objects.get(pk=url.strip('/').split('/')[-1])
     is_local_user = author.host in LOCAL_NODES
+    is_team_6 = TEAM_6 in author.host
     username = request.session['user_data'][0]
     password = request.session['user_data'][1]
     with requests.Session() as client:
@@ -240,6 +243,9 @@ def homepage_view(request, pk):
     with requests.Session() as client:
         client.auth = HTTPBasicAuth(username, password)
         inbox_items = inbox['items']
+        if is_team_6:
+            # team 6's inbox is in the opposite order of what we expect
+            inbox_items.reverse()
         for i in range(len(inbox_items)):
             i_type = inbox_items[i].get('type')
             if not i_type:
@@ -249,28 +255,29 @@ def homepage_view(request, pk):
 
             # this part is currently causing issues integrating with other groups, 
             # if the other groups post PUT method isn't implemented this causes problems
-            """
-            if i_type.lower() == 'post' or i_type.lower() == 'comment':
-                endpoint = 'id'
-                resp = client.get(inbox_items[i][endpoint])
-                if resp.status_code >= 400:
-                    removal_list.append(i)
-                    print(i)
-                else:
-                    item = resp.content
-                    item = item.decode('utf-8')
-                    item = json.loads(item)
-                    inbox_items[i] = item
-            """
             if inbox_items[i]['type'].lower() == 'post':
-                # commentSrc is optional so if it is absent we request
-                # for the comments from the comments attribute
-                resp = client.get(inbox_items[i]['comments'])
-                if resp.status_code < 400:
-                    comments = resp.content.decode('utf-8')
-                    inbox_items[i]['commentsSrc'] = json.loads(comments)
-                if inbox_items[i]['contentType'] == 'text/markdown':
-                    inbox_items[i]['content'] = commonmark.commonmark(inbox_items[i]['content'])
+                # this is how inbox items get updated
+                # team 6 post PUT /postlist get seem to not be interacting well
+                # so we just take whats in the inbox instead of updating
+                if not TEAM_6 in inbox_items[i]['id']:
+                    resp = client.get(inbox_items[i]['id'])
+                    if resp.status_code >= 400:
+                        removal_list.append(i)
+                    else:
+                        item = resp.content
+                        item = item.decode('utf-8')
+                        item = json.loads(item)
+                        print(item)
+                        inbox_items[i] = item
+
+                        # commentSrc is optional so if it is absent we request
+                        # for the comments from the comments attribute
+                        resp = client.get(inbox_items[i]['comments'], headers={"accept":"application/json"})
+                        if resp.status_code < 400:
+                            comments = resp.content.decode('utf-8')
+                            inbox_items[i]['commentsSrc'] = json.loads(comments)
+                        if inbox_items[i]['contentType'] == 'text/markdown':
+                            inbox_items[i]['content'] = commonmark.commonmark(inbox_items[i]['content'])
     removal_list.reverse()
     for i in range(len(removal_list)):
         del inbox_items[removal_list[i]]
