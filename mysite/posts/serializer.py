@@ -4,10 +4,10 @@ from authors.serializer import AuthorSerializer
 from .models import Like, Post, Comment, Comments
 
 
-class CreatePostSerializer(serializers.ModelSerializer):  # Specifies what needs to be given in the creation of a Post
+class UpdatePostSerializer(serializers.ModelSerializer):  #Returns what has been updated in the creation of a Post
     class Meta:
         model = Post
-        fields = ('title', 'description', 'source', 'content', 'contentType',
+        fields = ('title', 'description', 'content', 'contentType',
             'visibility', 'unlisted')
 
 class CommentSerializer(serializers.ModelSerializer):
