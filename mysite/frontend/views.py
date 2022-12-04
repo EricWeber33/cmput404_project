@@ -19,11 +19,15 @@ import base64
 import threading
 import datetime
 from io import BytesIO
+import os
 
-LOCAL_NODES = ['127.0.0.1:8000',
+on_heroku = 'DYN0' in os.environ
+if not on_heroku:
+    LOCAL_NODES = ['127.0.0.1:8000',
                'http://127.0.0.1:8000',
-               'http://127.0.0.1:8000/',
-               'cmput404f22t17.herokuapp.com/',
+               'http://127.0.0.1:8000/']
+else:
+    LOCAL_NODES = ['cmput404f22t17.herokuapp.com/',
                'https://cmput404f22t17.herokuapp.com/',
                'https://cmput404f22t17.herokuapp.com']
 
