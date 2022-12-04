@@ -156,6 +156,10 @@ def homepage_view(request, pk):
                         inbox.items[i]['content'])
                 inbox.items[i]['like_count'] = Like.objects.filter(
                     object=inbox.items[i]['source']).count()
+                for comment in inbox.items[i]['commentsSrc']["comments"] :
+                    comment["like_count"] = Like.objects.filter(
+                        object=inbox.items[i]['commentsSrc']["id"]+comment["id"]+'/').count()
+                
             except Post.DoesNotExist:
                 removal_list.append(i)
         elif inbox.items[i]['type'] == "comment":
@@ -179,33 +183,14 @@ def like_post_submit(request, pk, post_id):
     post = get_object_from_url(Post, post_id)
     url = request.build_absolute_uri()
     home_url = url.split('/home/')[0] + "/home/"
-    post_url = url.split('/authors/')[0] + '/authors/' + post.author.id + '/posts/' + post.id + '/'
-
-    #TODO use the endpoint instead, couldn't get it to work
-    like_obj = Like.objects.all().filter(object=post_url, author=request.user.author)
-    if len(like_obj) == 0:
-        like = Like.objects.create(
-        context=f"TODO",
-        author=request.user.author,
-        summary=f"{request.user.author.displayName} likes your post",
-        object=post_url
-        )
-        like.save()
-        inbox = get_object_from_url(Inbox, post.author.url)
-        inbox.items.insert(0, LikeSerializer(like).data)
-        inbox.save()
-    return HttpResponseRedirect(home_url)
-'''
-    post = get_object_from_url(Post, post_id)
-
-    url = request.build_absolute_uri()
-    home_url = url.split('/home/')[0] + "/home/"
     post_like_endpoint = post.author.url + 'posts/' + post.id + '/likes/'
-    #post_like_endpoint = post.source + '/likes'
 
     if request.method == 'POST':
         with requests.Session() as client:
             client.headers.update(request.headers)
+            like_data = {
+                "csrfmiddlewaretoken": get_token(request)
+            }
             client.headers.update({
                 'Content-Type': None,
                 'Content-Length': None,
@@ -214,11 +199,11 @@ def like_post_submit(request, pk, post_id):
                 'sessionid': request.session.session_key,
                 'csrftoken': get_token(request)
             }
-            client.post(post_like_endpoint, cookies=cookies, headers=headers)
+            client.post(post_like_endpoint, cookies=cookies, data=like_data)
     
     return HttpResponseRedirect(home_url)
 
-'''
+
 
 @permission_classes(IsAuthenticated,)
 def like_comment_submit(request, pk, comments, comment_id):
@@ -226,19 +211,23 @@ def like_comment_submit(request, pk, comments, comment_id):
     comment = get_object_from_url(Comment, comment_id)
     url = request.build_absolute_uri()
     home_url = url.split('/home/')[0] + "/home/"
-    comment_url = comments + comment_id + '/'
-    #TODO use the endpoint instead
-    like_obj = Like.objects.all().filter(object=comment_url, author=request.user.author)
-    if len(like_obj) == 0:
-        like = Like.objects.create(
-        context=f"TODO",
-        author=request.user.author,
-        summary=f"{request.user.author.displayName} likes your comment",
-        object=comment_url
-        )
-        like.save()
-        inbox_author_url = comment_url.split('posts/')[0]
-        inbox = Inbox.objects.get(author=inbox_author_url)
-        inbox.items.insert(0, LikeSerializer(like).data)
-        inbox.save()
+    comment_like_url = comments + comment_id + '/likes/'
+    
+    if request.method == 'POST':
+        with requests.Session() as client:
+            client.headers.update(request.headers)
+            like_data = {
+                "csrfmiddlewaretoken": get_token(request)
+            }
+            client.headers.update({
+                'Content-Type': None,
+                'Content-Length': None,
+            })
+            cookies = {
+                'sessionid': request.session.session_key,
+                'csrftoken': get_token(request)
+            }
+            client.post(comment_like_url, cookies=cookies, data=like_data)
+    
     return HttpResponseRedirect(home_url)
+
