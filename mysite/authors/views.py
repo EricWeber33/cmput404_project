@@ -34,6 +34,7 @@ class AuthenticatePut(permissions.BasePermission):
 
 class AuthorList(APIView):
     # URL: ://service/authors/
+    serializer_class = AuthorListSerializer
 
     def get(self, request, format=None):
         '''
@@ -73,6 +74,7 @@ class AuthorList(APIView):
 
 class AuthorDetail(APIView):
     # URL: ://service/authors/{AUTHOR_ID}/
+    serializer_class = AuthorSerializer
 
     def get_object(self, pk):
         '''
@@ -136,7 +138,7 @@ class FollowerList(APIView):
 
 
 class MakeFollowRequest(APIView):
-
+    serializer_class = FollowRequestSerializer
     def post(self, request, author_id):
         '''
         Description:
@@ -345,7 +347,8 @@ def register_view(request):
                     displayName=displayName,
                     github=github,
                     profileImage=profileImage,
-                    user=user
+                    user=user,
+                    verified=True
                 )
                 inbox = Inbox.objects.create(author=user_url)
                 user.save()
