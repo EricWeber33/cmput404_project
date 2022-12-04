@@ -77,7 +77,7 @@ def get_object_from_url_or_404(model, url):
 
 class PublicPostsList(APIView):
     #URL: ://service/posts/
-    serializer_class = PostListSerializer
+    serializer_class = UpdatePostSerializer
     def get(self, request, format=None):
         '''
         Description:
