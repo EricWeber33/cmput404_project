@@ -336,11 +336,11 @@ class PostList(APIView):
                     print("added local authors")
                     # and all remote authors on the server that hosts this author
                     if not is_local_author:
-                        author_resp = get_items(author.host.strip('/')+'/authors')
+                        author_resp = get_items(author.url.strip('/')+'/authors')
                         if author_resp.status_code < 400:
                             author_resp = author_resp.content.decode('utf-8')
                             remote_authors = json.loads(author_resp)
-                            for remote_author in remote_authors['items']:
+                            for remote_author in remote_authors.get('items', []):
                                 inboxs.add(remote_author['url'].strip('/')+'/inbox/')
                     print("added remote authors")
                 # post the post to all the relevant inbox's

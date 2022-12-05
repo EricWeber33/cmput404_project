@@ -116,7 +116,72 @@ def repost_submit(request, pk, post_id):
 
     return HttpResponseRedirect(home_url)
 
+@permission_classes(IsAuthenticated,)
+def edit_post(request, pk, post_id):
+    author = get_object_from_url(Author, pk)
+    post = get_object_from_url(Post, post_id)
+    url = request.build_absolute_uri()
+    home_url = url.split('/home/')[0] + "/home/"
+    post_endpoint = url.split('/home/')[0] + "/posts/" + post_id + '/'
+    if request.method == 'POST':
+        form = PostForm(request.POST, request.FILES)
+        if form.is_valid():
+            new_post = form.cleaned_data
+            if new_post['image'] is not None:
+                image = Image.open(image)
+                buffer = BytesIO()
+                file_type = 'png'
+                if new_post['content_type'] == Post.JPEG:
+                    file_type = 'JPEG'
+                elif new_post['content_type'] == Post.PNG:
+                    file_type = 'PNG'
+                else:
+                    # supplied an image but didn't say the content type was an image
+                    # should this throw an error?
+                    pass
+                image.save(buffer, format=file_type) # write the image data to the buffer so it can be encoded
+                new_post['content'] = 'data:'+ new_post['content_type'] + ',' + base64.b64encode(buffer.getvalue()).decode('utf-8')
+            old_post = PostSerializer(post).data
+            old_post.update(new_post)
+            old_post['csrfmiddlewaretoken'] = get_token(request)
+            with requests.Session() as client:
+                client.headers.update(request.headers)
+                client.headers.update({
+                    'Content-Type': None,
+                    'Content-Length': None,
+                    'Cookie': None
+                })
+                cookies = {
+                    'sessionid': request.session.session_key,
+                    'csrftoken': get_token(request)
+                }
+                client.post(post_endpoint, cookies=cookies, data=old_post)
+    return HttpResponseRedirect(home_url)
 
+@permission_classes(IsAuthenticated,)
+def delete_post(request, pk, post_id):
+    author = get_object_from_url(Author, pk)
+    post = get_object_from_url(Post, post_id)
+    url = request.build_absolute_uri()
+    home_url = url.split('/home/')[0] + "/home/"
+    post_endpoint = url.split('/home/')[0] + "/posts/" + post_id + '/'
+    if request.method == 'DELETE':
+        post_data = PostSerializer(post).data
+        post_data['csrfmiddlewaretoken'] = get_token(request)
+        with requests.Session() as client:
+            client.headers.update(request.headers)
+            client.headers.update({
+                'Content-Type': None,
+                'Content-Length': None,
+                'Cookie': None
+            })
+            cookies = {
+                'sessionid': request.session.session_key,
+                'csrftoken': get_token(request)
+            }
+            client.delete(post_endpoint, cookies=cookies, data=post_data)
+
+    return HttpResponseRedirect(home_url)
 
 
 @permission_classes(IsAuthenticated,)
@@ -170,15 +235,20 @@ def homepage_view(request, pk):
     is_local_user = author.host in LOCAL_NODES
     username = request.session['user_data'][0]
     password = request.session['user_data'][1]
-    with requests.Session() as client:
-        client.auth = HTTPBasicAuth(username, password)
-        url = author.url.strip('/') + '/inbox'
-        inbox = client.get(url)
-        if not inbox or inbox.status_code >= 400:
-            inbox = client.get(url+'/')
-        inbox = inbox.content.decode('utf-8')
-        inbox = json.loads(inbox)
-        print(inbox)
+    load_error = False
+    try:
+        with requests.Session() as client:
+            client.auth = HTTPBasicAuth(username, password)
+            url = author.url.strip('/') + '/inbox'
+            inbox = client.get(url)
+            if not inbox or inbox.status_code >= 400:
+                inbox = client.get(url+'/')
+            inbox = inbox.content.decode('utf-8')
+            inbox = json.loads(inbox)
+            # print(inbox)
+    except Exception as e:
+        print('load error', e)
+        load_error = True
     # inbox uses a json schema which means updates wont be reflected 
     # here we get the items referenced from their host and replace them in the items box
     removal_list = [] # keep track of indexes of deleted inbox items
@@ -216,10 +286,13 @@ def homepage_view(request, pk):
                         comments = resp.content
                         comments = comments.decode('utf-8')
                         inbox_items[i]['commentsSrc'] = json.loads(comments)
+                # store the content before manipulating to allow editing
+                inbox_items[i]['raw_content'] = inbox_items[i]['content']
                 if inbox_items[i]['contentType'] == 'text/markdown':
                     inbox_items[i]['content'] = commonmark.commonmark(inbox_items[i]['content'])
     removal_list.reverse()
     for i in range(len(removal_list)):
         del inbox_items[removal_list[i]]
     post_form = PostForm()
+    # print(json.dumps(inbox_items, sort_keys=True, indent=4))
     return render(request, 'homepage/home.html', {'type': 'inbox', 'items': inbox_items, "post_form": post_form})
