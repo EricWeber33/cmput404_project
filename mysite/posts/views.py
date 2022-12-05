@@ -7,7 +7,7 @@ from authors.models import Author
 from authors.serializer import AuthorSerializer
 from .models import Comment, Comments, Like, Post
 from django.db.models import Q
-from .serializer import PostSerializer, UpdatePostSerializer, CommentSerializer, CommentsSerializer, LikeSerializer
+from .serializer import PostSerializer, UpdatePostSerializer, CommentSerializer, CommentsSerializer, LikeSerializer, PostListSerializer
 from .models import Post, Comments, Comment
 from inbox.models import Inbox
 from authors.models import Author
@@ -77,7 +77,7 @@ def get_object_from_url_or_404(model, url):
 
 class PublicPostsList(APIView):
     #URL: ://service/posts/
-    serializer_class = UpdatePostSerializer
+    serializer_class = PostListSerializer
     def get(self, request, format=None):
         '''
         Description:
