@@ -61,14 +61,18 @@ def threaded_request(url, json_data, username, password):
     try:
         # we don't care about the response for these really so just continue if it takes over
         # 5 seconds
-        requests.post(url, json=json_data, auth=HTTPBasicAuth(username, password), timeout=5)
+        headers = {"accept":"application/json"}
+        res = requests.post(url, json=json_data, headers=headers, auth=HTTPBasicAuth(username, password), timeout=5)
+        if res.status_code >= 400:
+            requests.post(url.strip('/')+'/', json=json_data, headers=headers, auth=HTTPBasicAuth(username,password), timeout=5)
     except Exception:
         pass
 
 def _format_post_data_for_remote(post, remote_url):
-    if "socialdistribution-cmput404.herokuapp.com" in remote_url:
+    if TEAM_6 in remote_url:
         post = {"item": post}
-        print(post)
+    elif post.get('item'):
+        post = post['item']
     return post
 
 def send_post_to_inboxs(request, post_json, author_id):
@@ -117,7 +121,8 @@ def send_post_to_inboxs(request, post_json, author_id):
         if post_json['visibility'].upper() == "PUBLIC":
             # add all local + remote inboxs to inbox set
             local_authors = Author.objects.all()
-            local_authors = local_authors.exclude(host__contains=TEAM_6)
+            if TEAM_6 in author.host:
+                local_authors = local_authors.exclude(host__contains=TEAM_6)
             for local_author in local_authors:
                 inboxs.add(local_author.url.strip('/')+'/inbox/')
             print("added local authors")
@@ -133,6 +138,8 @@ def send_post_to_inboxs(request, post_json, author_id):
         # add followers to set
         add_followers()
         for url in inboxs:
+            if TEAM_9 in url:
+                url = url.replace('/authors', '/service/authors')
             print("sending post to: " + url)
             post_req_data = _format_post_data_for_remote(post_json, url)
             threading.Thread(target=threaded_request, args=(url, post_req_data, username, password)).start()
@@ -250,7 +257,6 @@ def homepage_view(request, pk):
     with requests.Session() as client:
         client.auth = HTTPBasicAuth(username, password)
         url = author.url.strip('/') + '/inbox'
-        print("AAAAAA" + url)
         if TEAM_9 in url:
             url = url.replace('/authors', '/service/authors')
         inbox = client.get(url)
