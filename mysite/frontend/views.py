@@ -172,6 +172,7 @@ def post_submit(request, pk):
                 content = 'data:' + content_type + ',' + \
                     base64.b64encode(buffer.getvalue()).decode('utf-8')
             post_data = {
+                "csrfmiddlewaretoken": get_token(request),
                 "title": title,
                 "description": description,
                 "content": content,
