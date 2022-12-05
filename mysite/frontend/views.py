@@ -79,12 +79,7 @@ def send_post_to_inboxs(request, post_json, author_id):
     '''
     post_json = json.loads(post_json)
     author = Author.objects.get(pk=author_id)
-    is_local_author = author.host in LOCAL_NODES
-    
-    raise Exception(f'{LOCAL_NODES} {get_current_site(request).domain} {author.host} {is_local_author}')
-    print(LOCAL_NODES)
-    print(author.host)
-    print(is_local_author)
+    is_local_author = get_current_site(request).domain in author.host
     username = None
     password = None
     if user_data := request.session.get('user_data'):
