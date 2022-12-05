@@ -244,10 +244,58 @@ def comment_submit(request, pk):
                 threaded_request(inbox_url, comment, username, password)
     return HttpResponseRedirect(home_url)
 
+def explore_posts(request, pk):
+    url = request.build_absolute_uri()
+    home_url = url.replace('/explore', '/home')
+    local_url = url.split('/authors')[0] + '/posts/'
+    posts = []
+    with requests.Session() as client:
+        client.headers = {'accept':'application/json'}
+        res = client.get(local_url)
+        if res.status_code < 400:
+            posts.extend(json.loads(res.content.decode('utf-8'))['items'])
+        if '127.0.0.1' in local_url:
+            # if we are on local host we have to get our actual sites posts as well
+            res = client.get('https://cmput404f22t17.herokuapp.com/posts/')
+            if res.status_code < 400:
+                posts.extend(json.loads(res.content.decode('utf-8'))['items'])
+        # add team 18 posts
+        res = client.get('https://cmput404team18-backend.herokuapp.com/backendapi/authors/posts/',
+                          auth=HTTPBasicAuth('t18user1','Password123!')) 
+        if res.status_code < 400:
+            posts.extend(json.loads(res.content.decode('utf-8'))['items'])
+            print('team 18 posts added')
+        # team 6 needs to loop through all authors
+        team_6_authors = client.get('https://socialdistribution-cmput404.herokuapp.com/authors/')
+        if team_6_authors.status_code < 400:
+            team_6_authors = json.loads(team_6_authors.content.decode('utf-8'))['items']
+            for author in team_6_authors:
+                a_posts = client.get(author['url'].strip('/')+'/posts/', auth=HTTPBasicAuth('argho', '12345678!'), timeout=5)
+                if a_posts.status_code < 400:
+                    print('team 6 author posts retrieved')
+                    posts.extend(json.loads(a_posts.content.decode('utf-8'))['items'])
+        # team 9 also needs to loop
+        team_9_authors = client.get('https://team9-socialdistribution.herokuapp.com/service/authors')
+        if team_9_authors.status_code < 400:
+            team_9_authors = json.loads(team_9_authors.content.decode('utf-8'))['items']
+            for author in team_9_authors:
+                a_url = author['url'].replace('/authors','/service/authors')
+                a_url = a_url.strip('/')+'/posts/'
+                print(a_url)
+                a_posts = client.get(a_url, timeout=5)
+                if a_posts.status_code < 400:
+                    print('team 9 author posts retrieved')
+                    print(json.loads(a_posts.content.decode('utf-8')))
+                    posts.extend(json.loads(a_posts.content.decode('utf-8')))
+        for p in posts:
+            print('\n' + p['published'])
+        posts = sorted(posts, key=lambda i:i['published'], reverse=True)
+    return render(request, 'homepage/explore.html', {'items': posts, 'home_url':home_url})
 
 @permission_classes(IsAuthenticated,)
 def homepage_view(request, pk):
     url = request.build_absolute_uri().split('home/')[0]
+    explore_url = request.build_absolute_uri().replace('/home', '/explore')
     author = Author.objects.get(pk=url.strip('/').split('/')[-1])
     is_local_user = author.host in LOCAL_NODES
     is_team_6 = TEAM_6 in author.host
@@ -327,7 +375,7 @@ def homepage_view(request, pk):
     for i in range(len(removal_list)):
         del inbox_items[removal_list[i]]
     post_form = PostForm()
-    return render(request, 'homepage/home.html', {'type': 'inbox', 'items': inbox_items, "post_form": post_form})
+    return render(request, 'homepage/home.html', {'type': 'inbox', 'items': inbox_items, "post_form": post_form, 'explore_url':explore_url})
 
 
 @permission_classes(IsAuthenticated,)
@@ -384,4 +432,5 @@ def like_comment_submit(request, pk, comments, comment_id):
             client.post(comment_like_url, cookies=cookies, data=like_data)
     
     return HttpResponseRedirect(home_url)
+
 
