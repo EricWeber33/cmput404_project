@@ -208,7 +208,7 @@ class PostDetail(APIView):
 
 class PostList(APIView):
     # URL ://service/authors/{AUTHOR_ID}/posts/
-
+    serializer_class = UpdatePostSerializer
     def get(self, request, author_id, format=None):
         '''
         Description:
@@ -290,7 +290,7 @@ class PostList(APIView):
                 unlisted=unlisted)
             post.save()
             return Response(PostSerializer(post).data, status=200)
-        return Response('Post was unsuccessful. Please check the required information was filled out correctly again.', status=422)
+        return Response('Post was unsuccessful. Please check the required information was filled out correctly again.', status=400)
 
 
 class ImageDetail(APIView):
