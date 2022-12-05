@@ -18,18 +18,20 @@ import json
 import sys
 import threading
 from rest_framework import permissions
-
+from django.contrib.sites.shortcuts import get_current_site
 import os
 
-on_heroku = 'DYN0' in os.environ
-if not on_heroku:
+def set_local(is_heroku):
     LOCAL_NODES = ['127.0.0.1:8000',
-               'http://127.0.0.1:8000',
-               'http://127.0.0.1:8000/']
-else:
-    LOCAL_NODES = ['cmput404f22t17.herokuapp.com/',
-               'https://cmput404f22t17.herokuapp.com/',
-               'https://cmput404f22t17.herokuapp.com']
+                'http://127.0.0.1:8000',
+                'http://127.0.0.1:8000/']
+    LOCAL_NODES_HEROKU = ['cmput404f22t17.herokuapp.com/',
+                'https://cmput404f22t17.herokuapp.com/',
+                'https://cmput404f22t17.herokuapp.com']
+    if is_heroku:
+        return LOCAL_NODES_HEROKU
+    else:
+        return LOCAL_NODES
 
 def threaded_request(url, json_data, username, password):
     # "solution" to heroku app being to slow to return from post endpoint
@@ -91,6 +93,8 @@ class PublicPostsList(APIView):
         '''
         posts = Post.objects.all().filter(visibility='PUBLIC').order_by('-published')
         proper_origin = []
+        is_heroku = "heroku" in get_current_site(request).domain
+        LOCAL_NODES = set_local(is_heroku)
         for post in posts:
             for host in LOCAL_NODES:
                 if(host in post.origin):
