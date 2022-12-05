@@ -38,7 +38,7 @@ else:
                'https://cmput404f22t17.herokuapp.com']
 
 TEAM_6 = "socialdistribution-cmput404.herokuapp.com"
-
+TEAM_9 = "team9-socialdistribution.herokuapp.com"
 
 def get_object_from_url(model, url):
     """attempts to return a db item using a url as primary key"""
@@ -115,7 +115,8 @@ def send_post_to_inboxs(request, post_json, author_id):
                         inboxs.add(follower['url'].strip('/')+'/inbox/')
         if post_json['visibility'].upper() == "PUBLIC":
             # add all local + remote inboxs to inbox set
-            local_authors = Author.objects.all().filter(host__in=LOCAL_NODES)
+            local_authors = Author.objects.all()
+            local_authors = local_authors.exclude(host__contains=TEAM_6)
             for local_author in local_authors:
                 inboxs.add(local_author.url.strip('/')+'/inbox/')
             print("added local authors")
@@ -136,6 +137,7 @@ def send_post_to_inboxs(request, post_json, author_id):
             threading.Thread(target=threaded_request, args=(url, post_req_data, username, password)).start()
         if not is_local_author:
             print("PUTing to remote server", post_json['id'])
+            url = post_json['id']
             client.put(post_json['id'], json=post_json)
         
 
@@ -170,7 +172,6 @@ def post_submit(request, pk):
                 content = 'data:' + content_type + ',' + \
                     base64.b64encode(buffer.getvalue()).decode('utf-8')
             post_data = {
-                "csrfmiddlewaretoken": get_token(request),
                 "title": title,
                 "description": description,
                 "content": content,
@@ -241,11 +242,15 @@ def homepage_view(request, pk):
     author = Author.objects.get(pk=url.strip('/').split('/')[-1])
     is_local_user = author.host in LOCAL_NODES
     is_team_6 = TEAM_6 in author.host
+    is_team_9 = TEAM_9 in author.host
     username = request.session['user_data'][0]
     password = request.session['user_data'][1]
     with requests.Session() as client:
         client.auth = HTTPBasicAuth(username, password)
         url = author.url.strip('/') + '/inbox'
+        print("AAAAAA" + url)
+        if TEAM_9 in url:
+            url = url.replace('/authors', '/service/authors')
         inbox = client.get(url)
         if not inbox or inbox.status_code >= 400:
             inbox = client.get(url+'/')
@@ -274,19 +279,26 @@ def homepage_view(request, pk):
                 # team 6 post PUT /postlist get seem to not be interacting well
                 # so we just take whats in the inbox instead of updating
                 if not TEAM_6 in inbox_items[i]['id']:
-                    resp = client.get(inbox_items[i]['source'])
+                    #team 9 specific garbage
+                    item_url = inbox_items[i]['id']
+                    if TEAM_9 in inbox_items[i]['source']:
+                        # team 9's scheme has many issues
+                        item_url = f'https://{TEAM_9}/service/authors/{pk}/posts/{inbox_items[i]["id"]}'
+                    print(item_url)
+                    resp = client.get(item_url)
                     if resp.status_code >= 400:
                         removal_list.append(i)
                     else:
                         item = resp.content
                         item = item.decode('utf-8')
                         item = json.loads(item)
-                        print(item)
                         inbox_items[i] = item
-
                         # commentSrc is optional so if it is absent we request
                         # for the comments from the comments attribute
-                        resp = client.get(inbox_items[i]['comments'], headers={"accept":"application/json"})
+                        comments_url = inbox_items[i]['comments']
+                        if TEAM_9 in inbox_items[i]['source']:
+                            comments_url=item_url+'/comments'
+                        resp = client.get(comments_url, headers={"accept":"application/json"})
                         if resp.status_code < 400:
                             comments = resp.content.decode('utf-8')
                             inbox_items[i]['commentsSrc'] = json.loads(comments)

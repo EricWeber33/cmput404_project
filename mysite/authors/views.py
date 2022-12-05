@@ -336,8 +336,6 @@ def register_view(request):
                     **form.cleaned_data, password=password)
                 user_id = uuid.uuid4().hex
                 domain = get_current_site(request).domain
-                if domain == "cmput404f22t17.herokuapp.com":
-                    domain = "https://" + domain + "/"
                 scheme = request.scheme
                 user_url = scheme + '://' + domain + '/authors/'+user_id+'/'
                 author = Author.objects.create(
