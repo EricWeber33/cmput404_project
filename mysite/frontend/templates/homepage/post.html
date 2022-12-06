@@ -1,13 +1,19 @@
 {% block post %}
 {% load frontend_extras %}
 {% with post_id=item.id|spliturl|index:4 %}
+<script src="https://kit.fontawesome.com/adfcecb43a.js" crossorigin="anonymous"></script>
 <div class="inbox_block" id="{{item.source}}">
     <div class="post_headline">
         <div class="title">
             <h3>{{ item.title }}</h3>
         </div>
         <div class="author">
-            <a href="{{ item.author.url }}"> {{ item.author.displayName }}</a>
+            <div class="author_link">
+                <a href="{{ item.author.url }}"> {{ item.author.displayName }}</a>
+            </div>
+            <div class="author_img">
+                <img id="profileImage" src="{{ item.author.profileImage }}" onerror="this.onerror=null; this.src='https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_960_720.png'" alt="Default Profile Image">
+            </div>
         </div>
     </div>
     <div class="post_description">
@@ -34,6 +40,13 @@
             <button class="btn_delete_post" data-id="{{post_id}}">Delete Post</button>
         {% endif %}
         <!--like-->
+        <form action={{"like_post_submit/"|add:item.id|add:"/"}} method="post">
+            {% csrf_token %}
+            <div class="like_box">
+                <button type="submit" id="like_post_button"><i class="fa fa-thumbs-up"></i></button>
+                <p>{{item.like_count}}</p>
+            </div>
+        </form>
         {% if item.contentType == 'image/png;base64' or item.contentType == 'image/jpeg;base64'%}
             <!--if image -> embed link-->
             <button class="btn_copy_embed">Copy Embed Link</button>
@@ -50,6 +63,13 @@
         <div class="comment">
             <a href="{{ comment.author.url }}"> {{ comment.author.displayName }}</a>
             <p>{{comment.comment}}</p>
+            <form action={{"like_comment_submit/"|add:item.comments|add:"/"|add:comment.id|add:"/"}} method="post">
+                {% csrf_token %}
+                <div class="like_box">
+                    <button type="submit" id="like_comment_button"><i class="fa fa-thumbs-up"></i></button>
+                    <p>{{comment.like_count}}</p>
+                </div>
+            </form>
         </div>
         {% endfor %}
     </div>

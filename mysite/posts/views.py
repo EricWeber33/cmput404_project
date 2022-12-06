@@ -7,7 +7,7 @@ from authors.models import Author
 from authors.serializer import AuthorSerializer
 from .models import Comment, Comments, Like, Post
 from django.db.models import Q
-from .serializer import PostSerializer, CreatePostSerializer, CommentSerializer, CommentsSerializer, LikeSerializer
+from .serializer import PostSerializer, UpdatePostSerializer, CommentSerializer, CommentsSerializer, LikeSerializer, PostListSerializer
 from .models import Post, Comments, Comment
 from inbox.models import Inbox
 from authors.models import Author
@@ -20,10 +20,15 @@ import threading
 import base64
 from rest_framework import permissions
 
-LOCAL_NODES = ['127.0.0.1:8000',
+import os
+
+on_heroku = 'DYN0' in os.environ
+if not on_heroku:
+    LOCAL_NODES = ['127.0.0.1:8000',
                'http://127.0.0.1:8000',
-               'http://127.0.0.1:8000/',
-               'cmput404f22t17.herokuapp.com/',
+               'http://127.0.0.1:8000/']
+else:
+    LOCAL_NODES = ['cmput404f22t17.herokuapp.com/',
                'https://cmput404f22t17.herokuapp.com/',
                'https://cmput404f22t17.herokuapp.com']
 
@@ -71,12 +76,31 @@ def get_object_from_url_or_404(model, url):
         except model.DoesNotExist:
             raise Http404
 
+class PublicPostsList(APIView):
+    #URL: ://service/posts/
+    serializer_class = PostListSerializer
+    def get(self, request, format=None):
+        '''
+        Description:
+        Gets all posts with origin id matching our server and visiblity set to public
+
+        Params:
+        request: request
+
+        Returns:
+        Response containing all profiles
+        '''
+        posts = Post.objects.all().filter(visibility='PUBLIC').order_by('-published')
+        data = PostSerializer(posts, many=True).data
+        data = {'type':'posts', 'items':data}
+        if not PostListSerializer(data=data).is_valid():
+            return Response("Internal error", status.HTTP_500_INTERNAL_SERVER_ERROR)
+        return Response(data)
+
+
 class PostDetail(APIView):
     permission_classes = (AuthenticatePost,)
     # URL: ://service/authors/{AUTHOR_ID}/posts/{POST_ID}
-
-    serializer_class = CreatePostSerializer
-
     def get(self, request, author_id, postID, format=None):
         '''
         Description:
@@ -108,33 +132,20 @@ class PostDetail(APIView):
         Returns:
         Response with an updated post and a status code of 200
         '''
-        serializer = self.serializer_class(data=request.data)
         author = Author.objects.get(pk=author_id)
         post = get_object_or_404(Post, pk=postID, author=author)
+        data = request.data
         # Fetch data
-        if serializer.is_valid():
-            title = serializer.data.get('title')
-            description = serializer.data.get('description')
-            source = serializer.data.get('source')
-            content = serializer.data.get('content')
-            visibility = serializer.data.get('visibility')
-            unlisted = serializer.data.get('unlisted')
-            # Update Post
-            if title != '' and title is not None:
-                post.title = title
-            if description != '' and description is not None:
-                post.description = description
-            if source != '' and source is not None:
-                post.source = source
-            if content != '' and content is not None:
-                post.content = content
-            if visibility != '' and visibility is not None:
-                post.visibility = visibility
-            if unlisted != '' and unlisted is not None:
-                post.unlisted = unlisted
+        try:
+            post.title = data.get('title', post.title)
+            post.description = data.get('description', post.description)
+            post.content = data.get('content', post.content)
+            post.visibility = data.get('visibility', post.visibility)
+            post.unlisted = data.get('unlisted', post.unlisted)
             post.save()
-            return Response(CreatePostSerializer(post).data, status=200)
-        return Response(status=204)
+            return Response(UpdatePostSerializer(post).data, status=200)
+        except:
+            return Response('POST was unsuccessful. Please check the required information was filled out correctly again.', status=422)
 
     def put(self, request, author_id, postID, format=None):
         # PUT [local] create a post where its id is pk
@@ -192,8 +203,7 @@ class PostDetail(APIView):
 
 class PostList(APIView):
     # URL ://service/authors/{AUTHOR_ID}/posts/
-    serializer_class = CreatePostSerializer
-
+    serializer_class = UpdatePostSerializer
     def get(self, request, author_id, format=None):
         '''
         Description:
@@ -226,11 +236,6 @@ class PostList(APIView):
         data = {'type':'posts', 'items':data}
         return Response(data)
 
-    def _format_post_data_for_remote(self, post, remote_url):
-        if "socialdistribution-cmput404.herokuapp.com" in remote_url:
-            post = {"item": post}
-            print(post)
-        return post
 
     def post(self, request, author_id, format=None):
         '''
@@ -245,8 +250,8 @@ class PostList(APIView):
         Response containing the new post with a status code of 200. If failed a message indicating
         failure will be sent instead with a status code of 204
         '''
+        print(author_id)
         author = Author.objects.get(pk=author_id)
-        is_local_author = author.host in LOCAL_NODES
         url = author.url.strip('/') + '/posts/'
         serializer = self.serializer_class(data=request.data)
         
@@ -279,81 +284,8 @@ class PostList(APIView):
                 visibility=visibility,
                 unlisted=unlisted)
             post.save()
-            post_data = PostSerializer(post).data
-            print("Saved post in DB")
-            # The following sends the newly created post to every relevant inbox
-            # ideally this would be extracted to a differnent method and there
-            # would be some utility that calls this endpoint then does this with
-            # the new post, but this will do for now
-            username = None
-            password = None
-            if user_data := request.session.get('user_data'):
-                username = user_data[0]
-                password = user_data[1]
-            with requests.Session() as client:
-                # set the client auth if relevant session info is present
-                # otherwise we just make the requests without
-                if username and password:
-                    client.auth = HTTPBasicAuth(username, password)
-
-                inboxs = set() # set containing urls for all relevant inbox endpoints
-
-                def get_items(req_url):
-                    # get request on urls with and without trailing '/'s
-                    response = client.get(req_url.strip('/'))
-                    if response.status_code >= 400:
-                        response = client.get(req_url.strip('/')+'/')
-                    return response
-
-                def add_followers():
-                    # add follower inbox endpoint to inboxs
-                    resp = get_items(author.url.strip('/')+'/followers')
-                    if resp.status_code < 400:
-                        friends = resp.content.decode('utf-8')
-                        friends = json.loads(friends)
-                        if type(friends) == dict:
-                            followers = friends.get('items', [])
-                            # these followers items should be authors
-                            for follower in followers:
-                                inboxs.add(follower['url'].strip('/')+'/inbox/')
-                        elif type(friends) == list:
-                            # asummed that this endpoint erroniously returned just a list of authors
-                            for follower in friends:
-                                inboxs.add(follower['url'].strip('/')+'/inbox/')
-        
-                if visibility.upper() == 'FRIENDS':
-                    add_followers()
-                elif visibility.upper() == 'PUBLIC':
-                    add_followers()
-                    print('added followers')
-                    # besides followers we need to get all local authors
-                    # this can be done more easily through the db with less risk of
-                    # errors. Note local authors in this case includes registered
-                    # remote authors on this server
-                    local_authors = Author.objects.all()
-                    for local_author in local_authors:
-                        inboxs.add(local_author.url.strip('/')+'/inbox/')
-                    print("added local authors")
-                    # and all remote authors on the server that hosts this author
-                    if not is_local_author:
-                        author_resp = get_items(author.url.strip('/')+'/authors')
-                        if author_resp.status_code < 400:
-                            author_resp = author_resp.content.decode('utf-8')
-                            remote_authors = json.loads(author_resp)
-                            for remote_author in remote_authors.get('items', []):
-                                inboxs.add(remote_author['url'].strip('/')+'/inbox/')
-                    print("added remote authors")
-                # post the post to all the relevant inbox's
-                for url in inboxs:
-                    post_req_data = self._format_post_data_for_remote(post_data, url)
-                    threading.Thread(target=threaded_request, args=(url, post_req_data, username, password)).start()
-                if not is_local_author:
-                    print("PUTing to remote server", post_data['id'])
-                    #TODO for team 6 this doesn't put but does cause it to be posted to everyones inbox again
-                    #client.put(post_data['id'], json=post_data)
             return Response(PostSerializer(post).data, status=200)
-        return Response('Post was unsuccessful. Please check the required information was filled out correctly again.', status=422)
-
+        return Response('Post was unsuccessful. Please check the required information was filled out correctly again.', status=400)
 
 
 class ImageDetail(APIView):
@@ -382,6 +314,7 @@ class ImageDetail(APIView):
 
 
 class CommentDetail(APIView):
+    serializer_class = CommentSerializer
     def get(self, request, author_id, post_id, comment_id):
         '''
         Description:
@@ -396,10 +329,13 @@ class CommentDetail(APIView):
         Returns:
         Returns a response containing the comment
         '''
-        url = request.build_absolute_uri()
-        comment = get_object_from_url_or_404(Comment, url)
-        serializer = CommentSerializer(comment)
-        return Response(serializer.data)
+        try:
+            comment = Comment.objects.get(id=comment_id)
+            serializer = CommentSerializer(comment)
+            return Response(serializer.data)
+        
+        except Comment.DoesNotExist:
+            return Response('Comment doesn\'t exist', status=status.HTTP_404_NOT_FOUND)
 
     def post(self, request, author_id, post_id, comment_id):
         # POST [local] update a comment
@@ -408,6 +344,7 @@ class CommentDetail(APIView):
 
 class CommentList(APIView):
     # URL: ://service/authors/{AUTHOR_ID}/posts/{POST_ID}/comments
+    serializer_class = CommentsSerializer
     def get(self, request, author_id, post_id):
         '''
         Description:
@@ -464,19 +401,24 @@ class CommentList(APIView):
         comments_list = get_object_from_url_or_404(Comments, url)
         if not CommentSerializer(data=data_copy).is_valid():
             return Response('Invalid comment object', status=status.HTTP_400_BAD_REQUEST)
+        print(request.data['author'])
+        print(request.data['author']['id'].strip('/').split('/')[-1])
+        comment_author = Author.objects.get(pk=request.data['author']['id'].strip('/').split('/')[-1])
+        print(comment_author)
         comment_single = Comment(
-            author=Author.objects.get(pk=request.data['author']['id']),
+            author=comment_author,
             comment=request.data['comment'],
             published=request.data['published'],
             id=request.data['id'])
+        comment_single.save()
         comments_list.comments.add(comment_single)
         comments_list.save()
-        comments_serializer = CommentsSerializer(comments_list)
-        return Response(comments_serializer.data)
+        return Response(CommentSerializer(comment_single).data, status=200)
+
 
 class LikePostList(APIView):
     # URL: ://service/authors/{AUTHOR_ID}/posts/{POST_ID}/likes
-
+    serializer_class = LikeSerializer
     def get(self, request, author_pk, post_pk):
         '''
         Description:
@@ -517,22 +459,38 @@ class LikePostList(APIView):
             author = Author.objects.get(pk=request.user.author.id)
             author_display_name = AuthorSerializer(
                 author, many=False).data["displayName"]
+            
+            object=f"{request.build_absolute_uri('/')}authors/{author_pk}/posts/{post_pk}/"
+            like = Like.objects.all().filter(object=object, author=author)
 
-            like_post = Like(
-                context=f"TODO",
-                author=author,
-                summary=f"{author_display_name} likes your post",
-                object=f"{request.build_absolute_uri('/')}authors/{author_pk}/posts/{post_pk}"
-            )
+            #if like doesnt exist, create a new like object
+            if len(like) == 0:
+                like_post = Like(
+                    context=f"TODO",
+                    author=author,
+                    summary=f"{author_display_name} likes your post",
+                    object=object
+                )
 
-            like_post.save()
-            like_post_serializer = LikeSerializer(like_post)
-            return Response(like_post_serializer.data)
+                like_post.save()
+                like_post_serializer = LikeSerializer(like_post)
 
+                # send the like to object authors inbox
+                post = Post.objects.get(source=object)
+                object_author_inbox = Inbox.objects.get(author=post.author.url)
+                object_author_inbox.items.insert(0, like_post_serializer.data)
+                object_author_inbox.save()
+
+                return Response(like_post_serializer.data)
+            else:
+                return Response("You have liked this post already", status=status.HTTP_403_FORBIDDEN)
+
+        else:
+            return Response("You are not authenticated. Log in first", status=status.HTTP_401_UNAUTHORIZED)
 
 class LikeCommentList(APIView):
     # URL: ://service/authors/{AUTHOR_ID}/posts/{POST_ID}/comments/{COMMENT_ID}/likes
-
+    serializer_class = LikeSerializer
     def get(self, request, author_pk, post_pk, comment_pk):
         '''
         Description:
@@ -574,24 +532,39 @@ class LikeCommentList(APIView):
 
         if request.user.is_authenticated:
 
+            comment = Comment.objects.get(id=comment_pk)
             author = Author.objects.get(pk=request.user.author.id)
             author_display_name = AuthorSerializer(
                 author, many=False).data["displayName"]
 
-            like_comment = Like(
-                context = "TODO",
-                author=author,
-                summary=f"{author_display_name} likes your comment",
-                object=f"{request.build_absolute_uri('/')}authors/{author_pk}/posts/{post_pk}/comments/{comment_pk}"
-            )
+            object=f"{request.build_absolute_uri('/')}authors/{author_pk}/posts/{post_pk}/comments/{comment_pk}/"
+            like = Like.objects.all().filter(object=object, author=author)
+            
+            #if like doesnt exist, create a new like object
+            if len(like) == 0:
+                like_comment = Like(
+                    context = "TODO",
+                    author=author,
+                    summary=f"{author_display_name} likes your comment",
+                    object=object
+                )
 
-            like_comment.save()
-            like_comment_serializer = LikeSerializer(like_comment)
-            return Response(like_comment_serializer.data)
+                like_comment.save()
+                like_comment_serializer = LikeSerializer(like_comment)
+
+                # send the like to object authors inbox
+                object_author_inbox = Inbox.objects.get(author=comment.author.url)
+                object_author_inbox.items.insert(0, like_comment_serializer.data)
+                object_author_inbox.save()
+
+                return Response(like_comment_serializer.data)
+            else:
+                return Response("You have liked this comment already", status=status.HTTP_403_FORBIDDEN)
 
 
 class AuthorLikesList(APIView):
     # URL: ://service/authors/{AUTHOR_ID}/liked
+    serializer_class = LikeSerializer
     def get(self, request, author_pk):
         '''
         Description:

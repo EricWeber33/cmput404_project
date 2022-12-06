@@ -7,6 +7,7 @@
     </head>
     <body>
         <h1>Social Distribution</h1>
+        <a href="{{ explore_url }}">Explore Posts</a>
         <hr class="item_separator">
         <div>
             {% with author_id=request.path|spliturl|index:2%}
@@ -31,7 +32,14 @@
                     {% endblock %}
                 {% endif %}
                 {% if item.type == "Like" %}
-                    {% block like %} {% endblock %}
+                    {% block like %} 
+                    <div class="inbox_block">
+                        <p><a class="notif_link" href="{{ item.author.url }}">{{ item.author.displayName }}</a> 
+                            liked your <a class="notif_link" href="{{ item.object }}"> 
+                            {{ item.object_type }}
+                        </a></p>
+                    </div>
+                    {% endblock %}
                 {% endif %}
                 {% if item.type == "follow" %}
                     {% block follow %} {% endblock %}

@@ -4,10 +4,10 @@ from authors.serializer import AuthorSerializer
 from .models import Like, Post, Comment, Comments
 
 
-class CreatePostSerializer(serializers.ModelSerializer):  # Specifies what needs to be given in the creation of a Post
+class UpdatePostSerializer(serializers.ModelSerializer):  #Returns what has been updated in the creation of a Post
     class Meta:
         model = Post
-        fields = ('title', 'description', 'source', 'content', 'contentType',
+        fields = ('title', 'description', 'content', 'contentType',
             'visibility', 'unlisted')
 
 class CommentSerializer(serializers.ModelSerializer):
@@ -39,6 +39,10 @@ class PostSerializer(serializers.ModelSerializer):
         if "/" not in ret["id"]:
             ret["id"] = f'{ret["author"]["url"].strip("/")}/posts/{ret["id"]}/'
         return ret
+
+class PostListSerializer(serializers.Serializer):
+    type = serializers.CharField()
+    items = PostSerializer(many=True)
 
 class LikeSerializer(serializers.ModelSerializer):
     author = AuthorSerializer()

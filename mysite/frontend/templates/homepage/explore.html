@@ -1,0 +1,19 @@
+{% load static %}
+<!-- templates/registration/login.html -->
+{% load static %}
+<html>
+    <head>
+        <link rel="stylesheet" href="{% static 'home.css' %}">
+    </head>
+    <body>
+        <h1>Social Distribution</h1>
+        <a href="{{ home_url }}"">Home</a>
+        <hr class="item_separator">
+        <div>
+            {% for item in items %}
+                {% include "./post.html" %}
+                <hr class="item_separator">
+            {% endfor %}
+        </div>
+    </body>
+</html>

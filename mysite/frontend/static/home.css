@@ -47,15 +47,38 @@ p {
     margin-inline-start: 0px;
     margin-inline-end: 0px;
     font-weight: bold;
+    height: 100%;
     width: 50%;
     text-align: right;
     color: magenta;
+    display: flex;
 }
 
-.post_headline .author a{
+.post_headline .author .author_link {
+    height: 100%;
+    flex-grow: 1;
+    padding-right: 1em;
+    width: 100%;
+}
+
+.post_headline .author .author_link a{
+    text-align: right;
+    display: inline-block;
     color: azure;
+    
 }
-
+.post_headline .author .author_img {
+    height: 100%;
+    flex: auto;
+    float: right;
+}
+.post_headline .author .author_img img{
+    position: relative;
+    height: 100%;
+    width: 3em;
+    border-radius: 15%;
+    display: inline-block;
+}
 .post_description {
     border: 1px solid magenta;
     border-style: none none solid none;
@@ -129,4 +152,11 @@ p {
 
 .comment a{
     color:azure;
+}
+
+.like_box {
+    display: flex;
+    justify-content: flex-start;
+    align-items: center;
+    gap: 10px
 }

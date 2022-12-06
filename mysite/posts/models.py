@@ -10,8 +10,7 @@ class Category(models.Model):
 # Create your models here.
 class Comment(models.Model):
     type = "comment"
-    author = models.ForeignKey(
-        Author, on_delete=models.DO_NOTHING)
+    author = models.ForeignKey(Author, on_delete=models.CASCADE)
     comment = models.CharField(max_length=200)
     contentType = "text/markdown"
     published = models.DateTimeField(auto_now=True)

@@ -34,6 +34,7 @@ class AuthenticatePut(permissions.BasePermission):
 
 class AuthorList(APIView):
     # URL: ://service/authors/
+    serializer_class = AuthorListSerializer
 
     def get(self, request, format=None):
         '''
@@ -73,6 +74,7 @@ class AuthorList(APIView):
 
 class AuthorDetail(APIView):
     # URL: ://service/authors/{AUTHOR_ID}/
+    serializer_class = AuthorSerializer
 
     def get_object(self, pk):
         '''
@@ -136,7 +138,7 @@ class FollowerList(APIView):
 
 
 class MakeFollowRequest(APIView):
-
+    serializer_class = FollowRequestSerializer
     def post(self, request, author_id):
         '''
         Description:
@@ -334,8 +336,6 @@ def register_view(request):
                     **form.cleaned_data, password=password)
                 user_id = uuid.uuid4().hex
                 domain = get_current_site(request).domain
-                if domain == "cmput404f22t17.herokuapp.com":
-                    domain = "https://" + domain + "/"
                 scheme = request.scheme
                 user_url = scheme + '://' + domain + '/authors/'+user_id+'/'
                 author = Author.objects.create(
@@ -345,7 +345,8 @@ def register_view(request):
                     displayName=displayName,
                     github=github,
                     profileImage=profileImage,
-                    user=user
+                    user=user,
+                    verified=True
                 )
                 inbox = Inbox.objects.create(author=user_url)
                 user.save()
@@ -420,7 +421,8 @@ def make_author(host, recieved_author):
         host=a_host,
         displayName=a_displayName,
         github=a_git,
-        profileImage=a_img
+        profileImage=a_img,
+        verified=True
     )
 
 def logout_view(request):

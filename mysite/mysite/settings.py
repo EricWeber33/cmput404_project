@@ -47,6 +47,7 @@ INSTALLED_APPS = [
     'django.contrib.admindocs',
     'rest_framework',
     'corsheaders',
+    'drf_spectacular',
 ]
 
 MIDDLEWARE = [
@@ -97,7 +98,8 @@ db_from_env = dj_database_url.config(conn_max_age=600)
 DATABASES['default'].update(db_from_env)
 
 REST_FRAMEWORK = {
-    'DEFAULT_PERMISSION_CLASSES': [],
+'DEFAULT_PERMISSION_CLASSES': [],
+'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
 }
 
 # Password validation
