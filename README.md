@@ -32,9 +32,9 @@ CMPUT 404 group project https://cmput404f22t17.herokuapp.com/
 | --------------------- | ------------------------------------------------------- |
 | Eric Weber            | [Eric Weber](https://github.com/EricWeber33)      |
 | Christopher Orlick    | [Christopher Orlick ](https://github.com/corlick98)      |
-| Alisha Crasta.        | [Alisha Crasta](https://github.com/alisha03)    |
+| Alisha Crasta         | [Alisha Crasta](https://github.com/alisha03)    |
 | Housten Le            | [Housten Le](https://github.com/houstonle)           |
-| Kevin Li              | [Kevin Li ](https://github.com/OmgPockii) |
+| Kevin Zhu             | [Kevin Zhu ](https://github.com/OmgPockii) |
 
 
 ## License
