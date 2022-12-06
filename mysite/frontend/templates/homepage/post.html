@@ -1,6 +1,8 @@
 {% block post %}
+{% load frontend_extras %}
+{% with post_id=item.id|spliturl|index:4 %}
 <script src="https://kit.fontawesome.com/adfcecb43a.js" crossorigin="anonymous"></script>
-<div class="inbox_block">
+<div class="inbox_block" id="{{item.source}}">
     <div class="post_headline">
         <div class="title">
             <h3>{{ item.title }}</h3>
@@ -26,31 +28,103 @@
     {% else %}
         <p>{{item.content}}</p>
     {% endif %}
-    <form action={{"like_post_submit/"|add:item.id|add:"/"}} method="post">
-        {% csrf_token %}
-        <div class="like_box">
-            <button type="submit" id="like_post_button"><i class="fa fa-thumbs-up"></i></button>
-            <p>{{item.like_count}}</p>
+    <div class="action_box">
+        <!--repost-->
+        <div>
+            <button class="btn_repost" data-id="{{post_id}}">Repost</button>
         </div>
-    </form>
-    <form method="post", action="comment_submit/">
-        {% csrf_token %}
-        <input type="text" name="comment" placeholder="enter your comment here">
-        <input type="hidden" name="endpoint" value="{{ item.comments }}">
-        <button type="submit">Comment</button>
-    </form>
-    {% for comment in item.commentsSrc.comments %}
-    <div class="comment">
-        <a href="{{ comment.author.url }}"> {{ comment.author.displayName }}</a>
-        <p>{{comment.comment}}</p>
-        <form action={{"like_comment_submit/"|add:item.comments|add:"/"|add:comment.id|add:"/"}} method="post">
+        {% if request.path|spliturl|index:2 == item.id|spliturl|index:2 %}
+            <!--edit-->
+            <button class="btn_edit_post">Edit Post</button>
+            <!--delete-->
+            <button class="btn_delete_post" data-id="{{post_id}}">Delete Post</button>
+        {% endif %}
+        <!--like-->
+        <form action={{"like_post_submit/"|add:item.id|add:"/"}} method="post">
             {% csrf_token %}
             <div class="like_box">
-                <button type="submit" id="like_comment_button"><i class="fa fa-thumbs-up"></i></button>
-                <p>{{comment.like_count}}</p>
+                <button type="submit" id="like_post_button"><i class="fa fa-thumbs-up"></i></button>
+                <p>{{item.like_count}}</p>
             </div>
         </form>
+        {% if item.contentType == 'image/png;base64' or item.contentType == 'image/jpeg;base64'%}
+            <!--if image -> embed link-->
+            <button class="btn_copy_embed">Copy Embed Link</button>
+        {% endif %}
     </div>
-    {% endfor %}
+    <div class="comment_box">
+        <form method="post", action="comment_submit/">
+            {% csrf_token %}
+            <input type="text" name="comment" placeholder="enter your comment here">
+            <input type="hidden" name="endpoint" value="{{ item.comments }}">
+            <button type="submit">Comment</button>
+        </form>
+        {% for comment in item.commentsSrc.comments %}
+        <div class="comment">
+            <a href="{{ comment.author.url }}"> {{ comment.author.displayName }}</a>
+            <p>{{comment.comment}}</p>
+            <form action={{"like_comment_submit/"|add:item.comments|add:"/"|add:comment.id|add:"/"}} method="post">
+                {% csrf_token %}
+                <div class="like_box">
+                    <button type="submit" id="like_comment_button"><i class="fa fa-thumbs-up"></i></button>
+                    <p>{{comment.like_count}}</p>
+                </div>
+            </form>
+        </div>
+        {% endfor %}
+    </div>
+    <div class="edit-post-modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <form method="post" action={{"edit_post/"|add:post_id|add:"/"}} enctype="multipart/form-data">
+                {% csrf_token %}
+                <p>
+                    <label for="id_title">Title:</label>
+                    <input type="text" name="title" required="" id="id_title" value="{{item.title}}">
+                </p>
+                <p>
+                    <label for="id_description">Description:</label>
+                    <input type="text" name="description" required="" id="id_description" value="{{item.description}}">
+                </p>
+                <p>
+                    <textarea 
+                        name="content" 
+                        cols="40" 
+                        rows="10" 
+                        placeholder="Enter content here (ignored for images)" 
+                        id="id_content"
+                    >{% if item.contentType != "image/png;base64" and image.contentType != "image/jpg;base64" %}{{item.raw_content}}{% endif %}</textarea>
+                </p>
+                <p>
+                    <label for="id_content_type">Content type:</label>
+                    <select name="content_type" id="id_content_type" value="{{item.contentType}">
+                        <option value="text/markdown">markdown</option>
+
+                        <option value="text/plain">plain text</option>
+
+                        <option value="application/base64">application/base64</option>
+
+                        <option value="image/png;base64">png</option>
+
+                        <option value="image/jpeg;base64">jpeg</option>
+
+                    </select>
+                </p>
+                <p>
+                    <label for="id_visibility">Visibility:</label>
+                    <select name="visibility" id="id_visibility" value="{{item.visibility}}">
+                        <option value="PUBLIC">Public</option>
+                        <option value="FRIENDS">Friends</option>
+                    </select>
+                </p>
+                <p>
+                    <label for="id_image">Image:</label>
+                    <input type="file" name="image" accept="image/*" id="id_image">
+                </p>
+                <button type="submit">Post</button>
+            </form>
+        </div>
+    </div>
 </div>
+{% endwith %}
 {% endblock %}

@@ -1,5 +1,5 @@
 from django.shortcuts import render
-from django.http import HttpResponseRedirect
+from django.http import HttpResponseRedirect, HttpResponse
 from django.middleware.csrf import get_token
 from django.contrib.sites.shortcuts import get_current_site
 from rest_framework.permissions import IsAuthenticated
@@ -15,7 +15,7 @@ import uuid
 import datetime
 import requests
 from posts.models import Post, Comment, Comments
-from posts.serializer import CommentSerializer
+from posts.serializer import CommentSerializer, PostSerializer
 from .forms import PostForm
 import uuid
 import requests
@@ -206,6 +206,151 @@ def post_submit(request, pk):
                     post = post.content.decode('utf-8')
                     send_post_to_inboxs(request, post, pk)
     return HttpResponseRedirect(home_url)
+        
+
+@permission_classes(IsAuthenticated,)
+def repost_submit(request, pk, post_id):
+    author = get_object_from_url(Author, pk)
+    post = get_object_from_url(Post, post_id)
+    url = request.build_absolute_uri()
+    home_url = url.split('/home/')[0] + "/home/"
+    post_endpoint = url.split('/home/')[0] + "/posts/"
+    if request.method == 'POST':
+        post_data = PostSerializer(post).data
+        post_data['csrfmiddlewaretoken'] = get_token(request)
+        with requests.Session() as client:
+            client.headers.update(request.headers)
+            client.headers.update({
+                'Content-Type': None,
+                'Content-Length': None,
+                'Cookie': None
+            })
+            cookies = {
+                'sessionid': request.session.session_key,
+                'csrftoken': get_token(request)
+            }
+            response = client.post(post_endpoint, cookies=cookies, data=post_data)
+            if response.status_code < 400:
+                return HttpResponse(status=201)
+            else:
+                return HttpResponse('Could not repost.', status=response.status_code)
+
+    return HttpResponseRedirect(home_url)
+
+@permission_classes(IsAuthenticated,)
+def edit_post(request, pk, post_id):
+    author = get_object_from_url(Author, pk)
+    post = get_object_from_url(Post, post_id)
+    url = request.build_absolute_uri()
+    home_url = url.split('/home/')[0] + "/home/"
+    post_endpoint = url.split('/home/')[0] + "/posts/" + post_id + '/'
+    if request.method == 'POST':
+        form = PostForm(request.POST, request.FILES)
+        if form.is_valid():
+            new_post = form.cleaned_data
+            if new_post['image'] is not None:
+                image = Image.open(image)
+                buffer = BytesIO()
+                file_type = 'png'
+                if new_post['content_type'] == Post.JPEG:
+                    file_type = 'JPEG'
+                elif new_post['content_type'] == Post.PNG:
+                    file_type = 'PNG'
+                else:
+                    # supplied an image but didn't say the content type was an image
+                    # should this throw an error?
+                    pass
+                image.save(buffer, format=file_type) # write the image data to the buffer so it can be encoded
+                new_post['content'] = 'data:'+ new_post['content_type'] + ',' + base64.b64encode(buffer.getvalue()).decode('utf-8')
+            old_post = PostSerializer(post).data
+            old_post.update(new_post)
+            old_post['csrfmiddlewaretoken'] = get_token(request)
+            with requests.Session() as client:
+                client.headers.update(request.headers)
+                client.headers.update({
+                    'Content-Type': None,
+                    'Content-Length': None,
+                    'Cookie': None
+                })
+                cookies = {
+                    'sessionid': request.session.session_key,
+                    'csrftoken': get_token(request)
+                }
+                client.post(post_endpoint, cookies=cookies, data=old_post)
+    return HttpResponseRedirect(home_url)
+
+@permission_classes(IsAuthenticated,)
+def delete_post(request, pk, post_id):
+    author = get_object_from_url(Author, pk)
+    post = get_object_from_url(Post, post_id)
+    url = request.build_absolute_uri()
+    home_url = url.split('/home/')[0] + "/home/"
+    post_endpoint = url.split('/home/')[0] + "/posts/" + post_id + '/'
+    if request.method == 'DELETE':
+        post_data = PostSerializer(post).data
+        post_data['csrfmiddlewaretoken'] = get_token(request)
+        with requests.Session() as client:
+            client.headers.update(request.headers)
+            client.headers.update({
+                'Content-Type': None,
+                'Content-Length': None,
+                'Cookie': None
+            })
+            cookies = {
+                'sessionid': request.session.session_key,
+                'csrftoken': get_token(request)
+            }
+            resp = client.delete(post_endpoint, cookies=cookies, data=post_data)
+            if resp.status_code < 400:
+                return HttpResponse(status=204)
+            else:
+                return HttpResponse('Failed to delete post.', status=resp.status_code)
+
+    return HttpResponseRedirect(home_url)
+
+
+@permission_classes(IsAuthenticated,)
+def comment_submit(request, pk):
+    url = request.build_absolute_uri()
+    home_url = url.split('/home/')[0] + "/home/"
+    if request.method == 'POST':
+       
+        # TODO use the endpoint instead of the model view
+        # attempt at this below
+        """
+        client = requests.Session()
+        author = Author.objects.get(pk=pk)
+        author = json.dumps(AuthorSerializer(author).data)
+        cookies = {
+            'sessionid': request.session.session_key,
+            'csrftoken': get_token(request)
+            }
+        data = {
+            'csrfmiddlewaretoken': get_token(request),
+            'author': author,
+            'comment':request.POST['comment'],
+            'published': str(datetime.datetime.now()),
+            'id': uuid.uuid4().hex
+        }
+        client.post(request.POST['endpoint'], cookies=cookies, data=data)
+        """
+        author = Author.objects.get(pk=pk)
+        comment = Comment.objects.create(
+            author=author,
+            comment=request.POST['comment'],
+            id=uuid.uuid4().hex
+        )
+        comment_src = get_object_from_url(Comments, request.POST['endpoint'])
+        if comment_src != None:
+            comment_src.comments.add(comment)
+        comment.save()
+        comment_src.save()
+        # send notification to post authors inbox
+        recipient_author_inbox = request.POST['endpoint'].split('/posts/')[0]
+        inbox = get_object_from_url(Inbox, recipient_author_inbox)
+        inbox.items.insert(0, CommentSerializer(comment).data)
+        inbox.save()
+    return HttpResponseRedirect(home_url)
 
 
 @permission_classes(IsAuthenticated,)
@@ -302,22 +447,29 @@ def homepage_view(request, pk):
     is_team_9 = TEAM_9 in author.host
     username = request.session['user_data'][0]
     password = request.session['user_data'][1]
-    with requests.Session() as client:
-        client.auth = HTTPBasicAuth(username, password)
-        url = author.url.strip('/') + '/inbox'
-        if TEAM_9 in url:
-            url = url.replace('/authors', '/service/authors')
-        inbox = client.get(url)
-        if not inbox or inbox.status_code >= 400:
-            inbox = client.get(url+'/')
-        inbox = inbox.content.decode('utf-8')
-        inbox = json.loads(inbox)
+    load_error = False
+    try:
+        with requests.Session() as client:
+            client.auth = HTTPBasicAuth(username, password)
+            url = author.url.strip('/') + '/inbox'
+            if TEAM_9 in url:
+                url = url.replace('/authors', '/service/authors')
+            inbox = client.get(url)
+            if not inbox or inbox.status_code >= 400:
+                inbox = client.get(url+'/')
+            inbox = inbox.content.decode('utf-8')
+            inbox = json.loads(inbox)
+            # print(inbox)
+    except Exception as e:
+        print('load error', e)
+        load_error = True
     # inbox uses a json schema which means updates wont be reflected 
     # here we get the items referenced from their host and replace them in the items box
     removal_list = [] # keep track of indexes of deleted inbox items
     with requests.Session() as client:
         client.auth = HTTPBasicAuth(username, password)
         inbox_items = inbox['items']
+        load_error = False
         if is_team_6:
             # team 6's inbox is in the opposite order of what we expect
             inbox_items.reverse()
@@ -341,30 +493,36 @@ def homepage_view(request, pk):
                         # team 9's scheme has many issues
                         item_url = f'https://{TEAM_9}/service/authors/{pk}/posts/{inbox_items[i]["id"]}'
                     print(item_url)
-                    resp = client.get(item_url)
-                    if resp.status_code >= 400:
-                        removal_list.append(i)
-                    else:
-                        item = resp.content
-                        item = item.decode('utf-8')
-                        item = json.loads(item)
-                        inbox_items[i] = item
-                        # commentSrc is optional so if it is absent we request
-                        # for the comments from the comments attribute
-                        comments_url = inbox_items[i]['comments']
-                        if TEAM_9 in inbox_items[i]['source']:
-                            comments_url=item_url+'/comments'
-                        resp = client.get(comments_url, headers={"accept":"application/json"})
-                        if resp.status_code < 400:
-                            comments = resp.content.decode('utf-8')
-                            inbox_items[i]['commentsSrc'] = json.loads(comments)
-                        if inbox_items[i]['contentType'] == 'text/markdown':
-                            inbox_items[i]['content'] = commonmark.commonmark(inbox_items[i]['content'])
-                        inbox_items[i]['like_count'] = Like.objects.filter(
-                            object=inbox_items[i]['source']).count()
-                        for comment in inbox_items[i]['commentsSrc']["comments"] :
-                            comment["like_count"] = Like.objects.filter(
-                                object=inbox_items[i]['commentsSrc']["id"]+comment["id"]+'/').count()
+                    try:
+                        resp = client.get(item_url)
+                        if resp.status_code >= 400:
+                            removal_list.append(i)
+                        else:
+                            item = resp.content
+                            item = item.decode('utf-8')
+                            item = json.loads(item)
+                            inbox_items[i] = item
+                            # commentSrc is optional so if it is absent we request
+                            # for the comments from the comments attribute
+                            comments_url = inbox_items[i]['comments']
+                            if TEAM_9 in inbox_items[i]['source']:
+                                comments_url=item_url+'/comments'
+                            resp = client.get(comments_url, headers={"accept":"application/json"})
+                            if resp.status_code < 400:
+                                comments = resp.content.decode('utf-8')
+                                inbox_items[i]['commentsSrc'] = json.loads(comments)
+                            # store raw content to allow editing
+                            inbox_items[i]['raw_content'] = inbox_items[i]['content']
+                            if inbox_items[i]['contentType'] == 'text/markdown':
+                                inbox_items[i]['content'] = commonmark.commonmark(inbox_items[i]['content'])
+                            inbox_items[i]['like_count'] = Like.objects.filter(
+                                object=inbox_items[i]['source']).count()
+                            for comment in inbox_items[i]['commentsSrc']["comments"] :
+                                comment["like_count"] = Like.objects.filter(
+                                    object=inbox_items[i]['commentsSrc']["id"]+comment["id"]+'/').count()
+                    except Exception as err:
+                        print(err)
+                        load_error = True
             elif inbox_items[i]['type'] == "Like":
                 if 'comments' in inbox_items[i]['object'] :
                     inbox_items[i]["object_type"] = "comment"
@@ -375,7 +533,13 @@ def homepage_view(request, pk):
     for i in range(len(removal_list)):
         del inbox_items[removal_list[i]]
     post_form = PostForm()
-    return render(request, 'homepage/home.html', {'type': 'inbox', 'items': inbox_items, "post_form": post_form, 'explore_url':explore_url})
+    return render(request, 'homepage/home.html', {
+        'type': 'inbox', 
+        'items': inbox_items, 
+        "post_form": post_form, 
+        'explore_url':explore_url,
+        "load_error": load_error,
+    })
 
 
 @permission_classes(IsAuthenticated,)
