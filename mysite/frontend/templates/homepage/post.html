@@ -30,13 +30,15 @@
                 <button name="repost" value="repost">Repost</button>
             </form>
         </div>
-        <!--edit-->
-        <button class="btn_edit_post">Edit Post</button>
-        <!--delete-->
-        <button class="btn_delete_post" data-id="{{post_id}}">Delete Post</button>
+        {% if request.path|spliturl|index:2 == item.id|spliturl|index:2 %}
+            <!--edit-->
+            <button class="btn_edit_post">Edit Post</button>
+            <!--delete-->
+            <button class="btn_delete_post" data-id="{{post_id}}">Delete Post</button>
+        {% endif %}
         <!--like-->
-        <!--if image -> embed link-->
         {% if item.contentType == 'image/png;base64' or item.contentType == 'image/jpeg;base64'%}
+            <!--if image -> embed link-->
             <button class="btn_copy_embed">Copy Embed Link</button>
         {% endif %}
     </div>

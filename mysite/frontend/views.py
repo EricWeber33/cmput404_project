@@ -1,5 +1,5 @@
 from django.shortcuts import render
-from django.http import HttpResponseRedirect
+from django.http import HttpResponseRedirect, HttpResponse
 from django.middleware.csrf import get_token
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.decorators import permission_classes
@@ -179,7 +179,9 @@ def delete_post(request, pk, post_id):
                 'sessionid': request.session.session_key,
                 'csrftoken': get_token(request)
             }
-            client.delete(post_endpoint, cookies=cookies, data=post_data)
+            resp = client.delete(post_endpoint, cookies=cookies, data=post_data)
+            if resp.status_code < 400:
+                return HttpResponse(status=204)
 
     return HttpResponseRedirect(home_url)
 
@@ -264,19 +266,20 @@ def homepage_view(request, pk):
 
             # this part is currently causing issues integrating with other groups, 
             # if the other groups post PUT method isn't implemented this causes problems
-            """
-            if i_type.lower() == 'post' or i_type.lower() == 'comment':
-                endpoint = 'id'
-                resp = client.get(inbox_items[i][endpoint])
-                if resp.status_code >= 400:
-                    removal_list.append(i)
-                    print(i)
-                else:
-                    item = resp.content
-                    item = item.decode('utf-8')
-                    item = json.loads(item)
-                    inbox_items[i] = item
-            """
+            try:
+                if i_type.lower() == 'post' or i_type.lower() == 'comment':
+                    endpoint = 'id'
+                    resp = client.get(inbox_items[i][endpoint])
+                    if resp.status_code >= 400:
+                        removal_list.append(i)
+                        # print(i)
+                    else:
+                        item = resp.content
+                        item = item.decode('utf-8')
+                        item = json.loads(item)
+                        inbox_items[i] = item
+            except Exception as err:
+                print(err)
             if inbox_items[i]['type'].lower() == 'post':
                 if not inbox_items[i].get('commentsSrc'):
                     # commentSrc is optional so if it is absent we request

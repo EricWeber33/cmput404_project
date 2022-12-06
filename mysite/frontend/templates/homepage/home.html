@@ -71,7 +71,9 @@
                             method: 'DELETE',
                             headers: { "X-CSRFToken": '{{csrf_token}}' },
                         }).then(res=>{
-                            console.log('delete res', res);
+                            if (res.status == 204) {
+                                btn.parentElement.parentElement.style.display = 'none';
+                            }
                         }).catch(err => {
                             console.error(err);
                         })
