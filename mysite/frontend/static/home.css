@@ -166,3 +166,10 @@ p {
     width: 100%;
     justify-content: space-between;
 }
+
+.header_links a{
+    color: azure;
+    font-family: monospace;
+    font-size: 1.17em;
+
+}
