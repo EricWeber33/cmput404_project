@@ -160,3 +160,10 @@ p {
     align-items: center;
     gap: 10px
 }
+
+.header_links a{
+    color: azure;
+    font-family: monospace;
+    font-size: 1.17em;
+
+}
