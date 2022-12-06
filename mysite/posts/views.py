@@ -90,12 +90,6 @@ class PublicPostsList(APIView):
         Response containing all profiles
         '''
         posts = Post.objects.all().filter(visibility='PUBLIC').order_by('-published')
-        proper_origin = []
-        for post in posts:
-            for host in LOCAL_NODES:
-                if(host in post.origin):
-                    proper_origin.append(post.id)
-        posts = posts.filter(id__in=proper_origin)
         data = PostSerializer(posts, many=True).data
         data = {'type':'posts', 'items':data}
         if not PostListSerializer(data=data).is_valid():

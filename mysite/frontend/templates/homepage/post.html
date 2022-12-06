@@ -6,9 +6,11 @@
             <h3>{{ item.title }}</h3>
         </div>
         <div class="author">
-            <a href="{{ item.author.url }}"> {{ item.author.displayName }}</a>
-            <div class="profileImage" style="padding-top: 5%">
-            <img id="profileImage" src="{{ item.author.profileImage }}" onerror="this.onerror=null; this.src='https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_960_720.png'" alt="Default Profile Image" style="border-radius: 50%; max-width: 200px; max-height: 200px; width: auto; height: auto;">
+            <div class="author_link">
+                <a href="{{ item.author.url }}"> {{ item.author.displayName }}</a>
+            </div>
+            <div class="author_img">
+                <img id="profileImage" src="{{ item.author.profileImage }}" onerror="this.onerror=null; this.src='https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_960_720.png'" alt="Default Profile Image">
             </div>
         </div>
     </div>
