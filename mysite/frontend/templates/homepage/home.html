@@ -37,10 +37,29 @@
                     {% block follow %} {% endblock %}
                 {% endif %}
                 {% if not forloop.last %}
-                <hr class="item_separator">
+                    <hr class="item_separator">
                 {% endif %}
             {% endfor %}
             <script>
+                var repost_btns = document.querySelectorAll('.btn_repost');
+                repost_btns.forEach(btn => {
+                    btn.onclick = () => {
+                        let id = btn.dataset.id;
+                        let url = "{{request.scheme}}://{{request.get_host}}/authors/{{author_id}}/home/repost_submit/"+id+"/";
+                        console.log(url);
+                        fetch(url, {
+                            method: 'POST',
+                            headers: { "X-CSRFToken": '{{csrf_token}}' },
+                        }).then(resp => {
+                            console.log('repost', resp);
+                            if (res.status > 399) {
+                                //some error
+                            }
+                        }).catch(err => {
+                            console.error(err);
+                        });
+                    }
+                })
                 var cpy_btns = document.querySelectorAll('.btn_copy_embed');
                 cpy_btns.forEach(btn => {
                     btn.onclick = () => {
@@ -66,13 +85,16 @@
                 delete_btns.forEach(btn => {
                     btn.onclick = () => {
                         let id = btn.dataset.id;
-                        let url = "http://{{request.get_host}}/authors/{{author_id}}/home/delete_post/"+id+"/";
+                        let url = "{{request.scheme}}://{{request.get_host}}/authors/{{author_id}}/home/delete_post/"+id+"/";
                         fetch(url, {
                             method: 'DELETE',
                             headers: { "X-CSRFToken": '{{csrf_token}}' },
                         }).then(res=>{
                             if (res.status == 204) {
                                 btn.parentElement.parentElement.style.display = 'none';
+                                btn.parentElement.parentElement.nextElementSibling.style.display = 'none';
+                            } else {
+                                console.error(res);
                             }
                         }).catch(err => {
                             console.error(err);

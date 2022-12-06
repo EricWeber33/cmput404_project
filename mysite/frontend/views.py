@@ -112,7 +112,11 @@ def repost_submit(request, pk, post_id):
                 'sessionid': request.session.session_key,
                 'csrftoken': get_token(request)
             }
-            client.post(post_endpoint, cookies=cookies, data=post_data)
+            response = client.post(post_endpoint, cookies=cookies, data=post_data)
+            if response.status_code < 400:
+                return HttpResponse(status=201)
+            else:
+                return HttpResponse('Could not repost.', status=response.status_code)
 
     return HttpResponseRedirect(home_url)
 
@@ -182,6 +186,8 @@ def delete_post(request, pk, post_id):
             resp = client.delete(post_endpoint, cookies=cookies, data=post_data)
             if resp.status_code < 400:
                 return HttpResponse(status=204)
+            else:
+                return HttpResponse('Failed to delete post.', status=resp.status_code)
 
     return HttpResponseRedirect(home_url)
 
