@@ -160,3 +160,9 @@ p {
     align-items: center;
     gap: 10px
 }
+
+.github_title {
+    display: flex;
+    width: 100%;
+    justify-content: space-between;
+}

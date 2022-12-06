@@ -18,7 +18,6 @@ from posts.models import Post, Comment, Comments
 from posts.serializer import CommentSerializer, PostSerializer
 from .forms import PostForm
 import uuid
-import requests
 from requests.auth import HTTPBasicAuth
 import json
 import commonmark
@@ -441,6 +440,7 @@ def explore_posts(request, pk):
 def homepage_view(request, pk):
     url = request.build_absolute_uri().split('home/')[0]
     explore_url = request.build_absolute_uri().replace('/home', '/explore')
+    git_url = request.build_absolute_uri().replace('/home', '/githubactivity')
     author = Author.objects.get(pk=url.strip('/').split('/')[-1])
     is_local_user = author.host in LOCAL_NODES
     is_team_6 = TEAM_6 in author.host
@@ -539,6 +539,7 @@ def homepage_view(request, pk):
         "post_form": post_form, 
         'explore_url':explore_url,
         "load_error": load_error,
+        "git_url" : git_url,
     })
 
 
@@ -597,4 +598,22 @@ def like_comment_submit(request, pk, comments, comment_id):
     
     return HttpResponseRedirect(home_url)
 
+@permission_classes(IsAuthenticated,)
+def github_activity(request, pk):
+    author = get_object_from_url(Author, pk)
+    github_name = author.github.split('/')[-1]
+    github_events = []
+    git_url = f"https://api.github.com/users/{github_name}/events/public"
+    url = request.build_absolute_uri()
+    home_url = url.split('/githubactivity/')[0] + "/home/"
+    
+    github_results = requests.get(git_url)
+    if github_results.status_code >= 400: 
+        return render(request, 'homepage/github.html', {'items': None, 'home_url':home_url})
+    github_results = github_results.json()
+    for github_post in github_results:
+        github_event = {"type": github_post['type'], "repo": github_post['repo']['name'],
+                    'time': github_post['created_at']}
+        github_events.append(github_event)
 
+    return render(request, 'homepage/github.html', {'items': github_events, 'home_url':home_url})

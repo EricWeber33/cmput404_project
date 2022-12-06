@@ -8,6 +8,8 @@
     <body>
         <h1>Social Distribution</h1>
         <a href="{{ explore_url }}">Explore Posts</a>
+        <br />
+        <a href="{{ git_url }}">GitHub Activity</a>
         <hr class="item_separator">
         <div>
             {% with author_id=request.path|spliturl|index:2%}
