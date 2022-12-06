@@ -1,5 +1,5 @@
 # Social Distribution
-CMPUT 404 group project
+CMPUT 404 group project https://cmput404f22t17.herokuapp.com/ 
 
 ## Demo Video
 [Project Demo](https://drive.google.com/file/d/1zAntWc_vFLiCRiO99ReN3btMU7795ATg/view?usp=sharing)
@@ -20,6 +20,13 @@ CMPUT 404 group project
 ### Testing Instructions
 1. `cd mysite` to navigate to the project folder
 1. Run `python manage.py test`
+
+## Connected Teams
+- Team 6 https://socialdistribution-cmput404.herokuapp.com/
+- Team 9 https://team9-socialdistribution.herokuapp.com/ 
+- Team 18 https://cmput404-backend.herokuapp.com/ 
+
+
 ## Contributors
 | Name                  | GitHub                                                  |
 | --------------------- | ------------------------------------------------------- |

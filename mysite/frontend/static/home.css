@@ -161,12 +161,6 @@ p {
     gap: 10px
 }
 
-.github_title {
-    display: flex;
-    width: 100%;
-    justify-content: space-between;
-}
-
 .header_links a{
     color: azure;
     font-family: monospace;

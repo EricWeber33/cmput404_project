@@ -16,13 +16,13 @@
                     <div class="inbox_block"></div>
                         <div>
                             <h3>{{ item.type }}</h3>
+                            <p>Repository: {{ item.repo }}</p>
                             <p>Created At: {{ item.time }}</p>
-                            <p> Repository: {{ item.repo }}</p>
                         </div>
                     </div>
                 {% endfor %}
             {% else %}
-                <p>github activity could not be fetched :( </p>
+                <p>Github activity could not be fetched :( </p>
             {% endif %}
         </div>
         <hr class="item_separator">

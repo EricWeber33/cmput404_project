@@ -613,7 +613,7 @@ def github_activity(request, pk):
     github_results = github_results.json()
     for github_post in github_results:
         github_event = {"type": github_post['type'], "repo": github_post['repo']['name'],
-                    'time': github_post['created_at']}
+                    "time": github_post['created_at']}
         github_events.append(github_event)
 
     return render(request, 'homepage/github.html', {'items': github_events, 'home_url':home_url})
