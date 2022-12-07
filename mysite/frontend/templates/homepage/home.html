@@ -116,6 +116,25 @@
                         })
                     }
                 })
+                var like_buttons = document.querySelectorAll('.like_post_button');
+                like_buttons.forEach(btn => {
+                    btn.onclick = () => {
+                        let id = btn.dataset.id;
+                        let url = "{{request.scheme}}://{{request.get_host}}/authors/{{author_id}}/home/like_post_submit/"+id+"/";
+                        fetch(url, {
+                            method: 'POST',
+                            headers: { "X-CSRFToken": '{{csrf_token}}' },
+                        }).then(res => {
+                            if (res.status == 200) {
+                                console.log('liked');
+                            } else {
+                                console.error(res);
+                            }
+                        }).catch(err=> {
+                            console.error(err);
+                        })
+                    }
+                })
             </script>
         {%endwith%}
         </div>

@@ -45,17 +45,12 @@
             <button class="btn_copy_embed" data-url="{{item.source}}">Copy Embed Link</button>
         {% endif %}
         <!--like-->
-        <form action={{"like_post_submit/"|add:item.id|add:"/"}} method="post">
-            {% csrf_token %}
-            <div class="like_box">
-                <button type="submit" id="like_post_button"><i class="fa fa-thumbs-up"></i></button>
-                <p>{{item.like_count}}</p>
-            </div>
-        </form>
-        {% if item.contentType == 'image/png;base64' or item.contentType == 'image/jpeg;base64'%}
-            <!--if image -> embed link-->
-            <button class="btn_copy_embed">Copy Embed Link</button>
-        {% endif %}
+        <div class="like_box">
+            <button class="like_post_button" data-id="{{post_id}}">
+                <i class="fa fa-thumbs-up"></i>
+            </button>
+            <p>{{item.like_count}}</p>
+        </div>
     </div>
     <div class="comment_box">
         <form method="post", action="comment_submit/">
