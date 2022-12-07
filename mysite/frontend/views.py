@@ -230,9 +230,10 @@ def repost_submit(request, pk, post_id):
             }
             response = client.post(post_endpoint, cookies=cookies, data=post_data)
             if response.status_code < 400:
-                return HttpResponse(status=201)
-            else:
-                return HttpResponse('Could not repost.', status=response.status_code)
+                post = response.content.decode('utf-8')
+                send_post_to_inboxs(request, post, pk)
+                return HttpResponseRedirect(home_url)
+            return HttpResponse('Could not repost.', status=response.status_code)
 
     return HttpResponseRedirect(home_url)
 

@@ -64,7 +64,7 @@
                             headers: { "X-CSRFToken": '{{csrf_token}}' },
                         }).then(resp => {
                             console.log('repost', resp);
-                            if (res.status > 399) {
+                            if (resp.status > 399) {
                                 //some error
                             }
                         }).catch(err => {
@@ -75,7 +75,7 @@
                 var cpy_btns = document.querySelectorAll('.btn_copy_embed');
                 cpy_btns.forEach(btn => {
                     btn.onclick = () => {
-                        var id = btn.parentElement.parentElement.id;
+                        var id = btn.dataset.url;
                         navigator.clipboard.writeText(id+"image/")
                     }
                 });
@@ -103,7 +103,9 @@
                             headers: { "X-CSRFToken": '{{csrf_token}}' },
                         }).then(res=>{
                             if (res.status == 204) {
+                                // hide deleted post
                                 btn.parentElement.parentElement.style.display = 'none';
+                                // hide separator
                                 btn.parentElement.parentElement.nextElementSibling.style.display = 'none';
                             } else {
                                 console.error(res);

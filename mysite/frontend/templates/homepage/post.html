@@ -41,6 +41,10 @@
             <!--delete-->
             <button class="btn_delete_post" data-id="{{post_id}}">Delete Post</button>
         {% endif %}
+        {% if item.contentType == 'image/png;base64' or item.contentType == 'image/jpeg;base64'%}
+            <!--if image -> embed link-->
+            <button class="btn_copy_embed" data-url="{{item.source}}">Copy Embed Link</button>
+        {% endif %}
         <!--like-->
         <form action={{"like_post_submit/"|add:item.id|add:"/"}} method="post">
             {% csrf_token %}
