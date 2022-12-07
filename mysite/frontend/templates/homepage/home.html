@@ -1,13 +1,20 @@
 <!-- templates/registration/login.html -->
 {% load static %}
+{% load frontend_extras %}
 <html>
     <head>
         <link rel="stylesheet" href="{% static 'home.css' %}">
     </head>
     <body>
         <h1>Social Distribution</h1>
+        <div class="header_links">
+            <a href="{{ explore_url }}">Explore Posts</a>
+            <br /> <br />
+            <a href="{{ git_url }}">GitHub Activity</a>
+        </div>
         <hr class="item_separator">
         <div>
+            {% with author_id=request.path|spliturl|index:2%}
             {% block post_form %}
             <h2>Make a Post</h2>
             <form method="post" action="post_submit/" enctype="multipart/form-data">
@@ -41,8 +48,73 @@
                 {% if item.type == "follow" %}
                     {% block follow %} {% endblock %}
                 {% endif %}
-                <hr class="item_separator">
+                {% if not forloop.last %}
+                    <hr class="item_separator">
+                {% endif %}
             {% endfor %}
+            <script>
+                var repost_btns = document.querySelectorAll('.btn_repost');
+                repost_btns.forEach(btn => {
+                    btn.onclick = () => {
+                        let id = btn.dataset.id;
+                        let url = "{{request.scheme}}://{{request.get_host}}/authors/{{author_id}}/home/repost_submit/"+id+"/";
+                        console.log(url);
+                        fetch(url, {
+                            method: 'POST',
+                            headers: { "X-CSRFToken": '{{csrf_token}}' },
+                        }).then(resp => {
+                            console.log('repost', resp);
+                            if (res.status > 399) {
+                                //some error
+                            }
+                        }).catch(err => {
+                            console.error(err);
+                        });
+                    }
+                })
+                var cpy_btns = document.querySelectorAll('.btn_copy_embed');
+                cpy_btns.forEach(btn => {
+                    btn.onclick = () => {
+                        var id = btn.parentElement.parentElement.id;
+                        navigator.clipboard.writeText(id+"image/")
+                    }
+                });
+                var edit_btns = document.querySelectorAll(".btn_edit_post");
+                edit_btns.forEach(btn => {
+                    btn.onclick = () => {
+                        var modal = btn.parentElement.parentElement.querySelector(".edit-post-modal");
+                        modal.style.display = 'block';
+                    }
+                });
+                var modal_close_btns = document.querySelectorAll('.close');
+                modal_close_btns.forEach(btn => {
+                    btn.onclick = () => {
+                        var modal = btn.parentElement.parentElement;
+                        modal.style.display = 'none';
+                    }
+                });
+                var delete_btns = document.querySelectorAll('.btn_delete_post');
+                delete_btns.forEach(btn => {
+                    btn.onclick = () => {
+                        let id = btn.dataset.id;
+                        let url = "{{request.scheme}}://{{request.get_host}}/authors/{{author_id}}/home/delete_post/"+id+"/";
+                        fetch(url, {
+                            method: 'DELETE',
+                            headers: { "X-CSRFToken": '{{csrf_token}}' },
+                        }).then(res=>{
+                            if (res.status == 204) {
+                                btn.parentElement.parentElement.style.display = 'none';
+                                btn.parentElement.parentElement.nextElementSibling.style.display = 'none';
+                            } else {
+                                console.error(res);
+                            }
+                        }).catch(err => {
+                            console.error(err);
+                        })
+                    }
+                })
+            </script>
+        {%endwith%}
         </div>
     </body>
 </html>

@@ -421,7 +421,8 @@ def make_author(host, recieved_author):
         host=a_host,
         displayName=a_displayName,
         github=a_git,
-        profileImage=a_img
+        profileImage=a_img,
+        verified=True
     )
 
 def logout_view(request):
