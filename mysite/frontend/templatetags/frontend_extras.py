@@ -10,7 +10,6 @@ def spliturl(url):
 
 @register.filter(name='index')
 def index(indexable, i):
-    print('findex', indexable)
     if len(indexable) < i:
         return ''
     return indexable[i]

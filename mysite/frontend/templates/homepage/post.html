@@ -1,8 +1,7 @@
 {% block post %}
 {% load frontend_extras %}
 {% with post_id=item.id|spliturl|index:4 %}
-<script src="https://kit.fontawesome.com/adfcecb43a.js" crossorigin="anonymous"></script>
-<div class="inbox_block" id="{{item.source}}">
+<div class="inbox_block">
     <div class="post_headline">
         <div class="title">
             <h3>{{ item.title }}</h3>
@@ -19,15 +18,17 @@
     <div class="post_description">
         <h3>{{ item.description }}</h3>
     </div>
-    {% if item.contentType == 'text/markdown' %}
-        <p>{{ item.content |safe }}</p>
-    {% elif item.contentType == 'image/png;base64' %}
-        <img class="post_image" src="{{ item.content }}"/>
-    {% elif item.contentType == 'image/jpeg;base64' %}
-        <img class="post_image" src="{{ item.content }}"/>
-    {% else %}
-        <p>{{item.content}}</p>
-    {% endif %}
+    <div class="post_content">
+        {% if item.contentType == 'text/markdown' %}
+            <p>{{ item.content |safe }}</p>
+        {% elif item.contentType == 'image/png;base64' %}
+            <img class="post_image" src="{{ item.content }}"/>
+        {% elif item.contentType == 'image/jpeg;base64' %}
+            <img class="post_image" src="{{ item.content }}"/>
+        {% else %}
+            <p>{{item.content}}</p>
+        {% endif %}
+    </div>
     <div class="action_box">
         <!--repost-->
         <div>
@@ -39,18 +40,17 @@
             <!--delete-->
             <button class="btn_delete_post" data-id="{{post_id}}">Delete Post</button>
         {% endif %}
-        <!--like-->
-        <form action={{"like_post_submit/"|add:item.id|add:"/"}} method="post">
-            {% csrf_token %}
-            <div class="like_box">
-                <button type="submit" id="like_post_button"><i class="fa fa-thumbs-up"></i></button>
-                <p>{{item.like_count}}</p>
-            </div>
-        </form>
         {% if item.contentType == 'image/png;base64' or item.contentType == 'image/jpeg;base64'%}
             <!--if image -> embed link-->
-            <button class="btn_copy_embed">Copy Embed Link</button>
+            <button class="btn_copy_embed" data-url="{{item.source}}">Copy Embed Link</button>
         {% endif %}
+        <!--like-->
+        <div class="like_box">
+            <button class="like_post_button" data-id="{{post_id}}">
+                <i class="fa fa-thumbs-up"></i>
+            </button>
+            <p>{{item.like_count}}</p>
+        </div>
     </div>
     <div class="comment_box">
         <form method="post", action="comment_submit/">

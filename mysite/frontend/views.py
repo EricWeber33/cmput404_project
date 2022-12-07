@@ -230,9 +230,10 @@ def repost_submit(request, pk, post_id):
             }
             response = client.post(post_endpoint, cookies=cookies, data=post_data)
             if response.status_code < 400:
-                return HttpResponse(status=201)
-            else:
-                return HttpResponse('Could not repost.', status=response.status_code)
+                post = response.content.decode('utf-8')
+                send_post_to_inboxs(request, post, pk)
+                return HttpResponseRedirect(home_url)
+            return HttpResponse('Could not repost.', status=response.status_code)
 
     return HttpResponseRedirect(home_url)
 
@@ -408,7 +409,7 @@ def explore_posts(request, pk):
                           auth=HTTPBasicAuth('t18user1','Password123!')) 
         if res.status_code < 400:
             posts.extend(json.loads(res.content.decode('utf-8'))['items'])
-            print('team 18 posts added')
+            # print('team 18 posts added')
         # team 6 needs to loop through all authors
         team_6_authors = client.get('https://socialdistribution-cmput404.herokuapp.com/authors/')
         if team_6_authors.status_code < 400:
@@ -416,7 +417,7 @@ def explore_posts(request, pk):
             for author in team_6_authors:
                 a_posts = client.get(author['url'].strip('/')+'/posts/', auth=HTTPBasicAuth('argho', '12345678!'), timeout=5)
                 if a_posts.status_code < 400:
-                    print('team 6 author posts retrieved')
+                    # print('team 6 author posts retrieved')
                     posts.extend(json.loads(a_posts.content.decode('utf-8'))['items'])
         # team 9 also needs to loop
         team_9_authors = client.get('https://team9-socialdistribution.herokuapp.com/service/authors')
@@ -425,14 +426,17 @@ def explore_posts(request, pk):
             for author in team_9_authors:
                 a_url = author['url'].replace('/authors','/service/authors')
                 a_url = a_url.strip('/')+'/posts/'
-                print(a_url)
+                # print(a_url)
                 a_posts = client.get(a_url, timeout=5)
                 if a_posts.status_code < 400:
-                    print('team 9 author posts retrieved')
-                    print(json.loads(a_posts.content.decode('utf-8')))
+                    # print('team 9 author posts retrieved')
+                    # print(json.loads(a_posts.content.decode('utf-8')))
                     posts.extend(json.loads(a_posts.content.decode('utf-8')))
         for p in posts:
             print('\n' + p['published'])
+            p['raw_content'] = p['content']
+            if p['contentType'] == 'text/markdown':
+                p['content'] = commonmark.commonmark(p['content'])
         posts = sorted(posts, key=lambda i:i['published'], reverse=True)
     return render(request, 'homepage/explore.html', {'items': posts, 'home_url':home_url})
 
@@ -469,7 +473,6 @@ def homepage_view(request, pk):
     with requests.Session() as client:
         client.auth = HTTPBasicAuth(username, password)
         inbox_items = inbox['items']
-        load_error = False
         if is_team_6:
             # team 6's inbox is in the opposite order of what we expect
             inbox_items.reverse()
@@ -546,11 +549,11 @@ def homepage_view(request, pk):
 @permission_classes(IsAuthenticated,)
 def like_post_submit(request, pk, post_id):
     
-    postID = post_id.split('/posts/')[1][:-1]
-    post = get_object_from_url(Post, postID)
+    # postID = post_id.split('/posts/')[1][:-1]
+    post = get_object_from_url(Post, post_id)
     url = request.build_absolute_uri()
     home_url = url.split('/home/')[0] + "/home/"
-    post_like_endpoint = post_id + 'likes/'
+    post_like_endpoint = url.split('/home/')[0] + '/posts/'+ post_id + '/likes/'
 
     if request.method == 'POST':
         with requests.Session() as client:
