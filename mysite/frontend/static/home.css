@@ -90,6 +90,11 @@ p {
     height: auto;
 }
 
+.post_content img {
+    max-width: 100%;
+    height: auto;
+}
+
 .item_separator {
     border: none;
     height: 3px;
