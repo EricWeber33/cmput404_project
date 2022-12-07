@@ -1,8 +1,7 @@
 {% block post %}
 {% load frontend_extras %}
 {% with post_id=item.id|spliturl|index:4 %}
-<script src="https://kit.fontawesome.com/adfcecb43a.js" crossorigin="anonymous"></script>
-<div class="inbox_block" id="{{item.source}}">
+<div class="inbox_block">
     <div class="post_headline">
         <div class="title">
             <h3>{{ item.title }}</h3>
