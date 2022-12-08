@@ -53,12 +53,17 @@
         </div>
     </div>
     <div class="comment_box">
+        <!-- We don't support commenting on remote posts-->
+        {% with request.build_absolute_uri as server %}
+        {% if item.author.host in server %}
         <form method="post", action="comment_submit/">
             {% csrf_token %}
             <input type="text" name="comment" placeholder="enter your comment here">
             <input type="hidden" name="endpoint" value="{{ item.comments }}">
             <button type="submit">Comment</button>
         </form>
+        {% endif%}
+        {% endwith %}
         {% for comment in item.commentsSrc.comments %}
         <div class="comment">
             <a href="{{ comment.author.url }}"> {{ comment.author.displayName }}</a>
