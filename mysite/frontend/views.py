@@ -427,6 +427,9 @@ def homepage_view(request, pk):
     is_local_user = author.host in LOCAL_NODES
     is_team_6 = TEAM_6 in author.host
     is_team_9 = TEAM_9 in author.host
+    if not request.session.get('user_data'):
+        login_url = url.split(pk)[0].replace('authors/', 'login/')
+        return HttpResponseRedirect(login_url)
     username = request.session['user_data'][0]
     password = request.session['user_data'][1]
     load_error = False
