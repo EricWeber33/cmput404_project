@@ -60,6 +60,7 @@
             {% csrf_token %}
             <input type="text" name="comment" placeholder="enter your comment here">
             <input type="hidden" name="endpoint" value="{{ item.comments }}">
+            <input type="hidden" name="redirect_url" value="{{ server }}">
             <button type="submit">Comment</button>
         </form>
         {% endif%}

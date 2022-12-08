@@ -314,28 +314,9 @@ def delete_post(request, pk, post_id):
 @permission_classes(IsAuthenticated,)
 def comment_submit(request, pk):
     url = request.build_absolute_uri()
-    home_url = url.split('/home/')[0] + "/home/"
+    redirect_url = url.replace('comment_submit/', '')
     if request.method == 'POST':
-       
-        # TODO use the endpoint instead of the model view
-        # attempt at this below
-        """
-        client = requests.Session()
-        author = Author.objects.get(pk=pk)
-        author = json.dumps(AuthorSerializer(author).data)
-        cookies = {
-            'sessionid': request.session.session_key,
-            'csrftoken': get_token(request)
-            }
-        data = {
-            'csrfmiddlewaretoken': get_token(request),
-            'author': author,
-            'comment':request.POST['comment'],
-            'published': str(datetime.datetime.now()),
-            'id': uuid.uuid4().hex
-        }
-        client.post(request.POST['endpoint'], cookies=cookies, data=data)
-        """
+        # since remote comments are not part of the spec we can just use the database
         author = Author.objects.get(pk=pk)
         comment = Comment.objects.create(
             author=author,
@@ -352,44 +333,7 @@ def comment_submit(request, pk):
         inbox = get_object_from_url(Inbox, recipient_author_inbox)
         inbox.items.insert(0, CommentSerializer(comment).data)
         inbox.save()
-    return HttpResponseRedirect(home_url)
-
-
-@permission_classes(IsAuthenticated,)
-def comment_submit(request, pk):
-    print(request.POST['endpoint'])
-    url = request.build_absolute_uri()
-    home_url = url.split('/home/')[0] + "/home/"
-    username = None
-    password = None
-    if request.session.get('user_data'):
-        username = request.session['user_data'][0]
-        password = request.session['user_data'][1]
-
-    if request.method == 'POST':
-        # remote authors should have a proper representation in our db
-        # so we can do this
-        print(pk)
-        author = Author.objects.get(pk=pk)
-        with requests.Session() as client:
-            if username and password:
-                client.auth = HTTPBasicAuth(username, password)
-            comment_data = {
-                'author': AuthorSerializer(author).data,
-                'comment': request.POST['comment'],
-                'published': str(datetime.datetime.now()),
-                'id': uuid.uuid4().hex
-            }
-            headers = {
-                'accept': 'application/json'
-            }
-            comment = client.post(request.POST['endpoint'], headers=headers, json=comment_data)
-            print(comment.status_code)
-            if comment.status_code < 400:
-                comment = json.loads(comment.content.decode('utf-8'))
-                inbox_url = request.POST['endpoint'].split('posts/')[0] + 'inbox'
-                threaded_request(inbox_url, comment, username, password)
-    return HttpResponseRedirect(home_url)
+    return HttpResponseRedirect(redirect_url)
 
 async def get_comments(client, url):
     async with client.get(url) as resp:
@@ -426,7 +370,6 @@ async def get_posts(urls, username=None, password=None):
     async with aiohttp.ClientSession(**kwargs) as client:
         tasks = []
         for url in urls:
-            print(url)
             tasks.append(asyncio.ensure_future(get_post(client, url)))
         items = await asyncio.gather(*tasks)
         return items
