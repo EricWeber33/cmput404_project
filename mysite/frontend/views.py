@@ -25,6 +25,8 @@ import base64
 import threading
 import datetime
 from io import BytesIO
+import aiohttp
+import asyncio
 import os
 
 on_heroku = 'DYN0' in os.environ
@@ -312,28 +314,9 @@ def delete_post(request, pk, post_id):
 @permission_classes(IsAuthenticated,)
 def comment_submit(request, pk):
     url = request.build_absolute_uri()
-    home_url = url.split('/home/')[0] + "/home/"
+    redirect_url = url.replace('comment_submit/', '')
     if request.method == 'POST':
-       
-        # TODO use the endpoint instead of the model view
-        # attempt at this below
-        """
-        client = requests.Session()
-        author = Author.objects.get(pk=pk)
-        author = json.dumps(AuthorSerializer(author).data)
-        cookies = {
-            'sessionid': request.session.session_key,
-            'csrftoken': get_token(request)
-            }
-        data = {
-            'csrfmiddlewaretoken': get_token(request),
-            'author': author,
-            'comment':request.POST['comment'],
-            'published': str(datetime.datetime.now()),
-            'id': uuid.uuid4().hex
-        }
-        client.post(request.POST['endpoint'], cookies=cookies, data=data)
-        """
+        # since remote comments are not part of the spec we can just use the database
         author = Author.objects.get(pk=pk)
         comment = Comment.objects.create(
             author=author,
@@ -350,44 +333,46 @@ def comment_submit(request, pk):
         inbox = get_object_from_url(Inbox, recipient_author_inbox)
         inbox.items.insert(0, CommentSerializer(comment).data)
         inbox.save()
-    return HttpResponseRedirect(home_url)
+    return HttpResponseRedirect(redirect_url)
 
+async def get_comments(client, url):
+    async with client.get(url) as resp:
+        if resp.ok:
+            comments = await resp.text()
+            comments = json.loads(comments)
+            if type(comments) == dict:
+                comments = comments.get('comments')
+                if comments:
+                    return comments
+            elif type(comments) == list:
+                return comments
 
-@permission_classes(IsAuthenticated,)
-def comment_submit(request, pk):
-    print(request.POST['endpoint'])
-    url = request.build_absolute_uri()
-    home_url = url.split('/home/')[0] + "/home/"
-    username = None
-    password = None
-    if request.session.get('user_data'):
-        username = request.session['user_data'][0]
-        password = request.session['user_data'][1]
+async def get_post(client, url):
+    async with client.get(url) as resp:
+        if resp.ok:
+            item = await resp.text()
+            item = json.loads(item)
+            if item:
+                if type(item) == list:
+                    item = item[0]
+                if type(item) == dict:
+                    if not item.get('commentsSrc'):
+                        # we need to get the comments src
+                        comments_url = item.get('comments')
+                        if comments_url:
+                            if TEAM_9 in comments_url:
+                                comments_url.replace('/authors', '/service/authors')
+                            item['commentsSrc'] = await get_comments(client, item['comments'])
+                    return item
 
-    if request.method == 'POST':
-        # remote authors should have a proper representation in our db
-        # so we can do this
-        print(pk)
-        author = Author.objects.get(pk=pk)
-        with requests.Session() as client:
-            if username and password:
-                client.auth = HTTPBasicAuth(username, password)
-            comment_data = {
-                'author': AuthorSerializer(author).data,
-                'comment': request.POST['comment'],
-                'published': str(datetime.datetime.now()),
-                'id': uuid.uuid4().hex
-            }
-            headers = {
-                'accept': 'application/json'
-            }
-            comment = client.post(request.POST['endpoint'], headers=headers, json=comment_data)
-            print(comment.status_code)
-            if comment.status_code < 400:
-                comment = json.loads(comment.content.decode('utf-8'))
-                inbox_url = request.POST['endpoint'].split('posts/')[0] + 'inbox'
-                threaded_request(inbox_url, comment, username, password)
-    return HttpResponseRedirect(home_url)
+async def get_posts(urls, username=None, password=None):
+    kwargs = {'auth': aiohttp.BasicAuth(username, password)} if username and password else {}
+    async with aiohttp.ClientSession(**kwargs) as client:
+        tasks = []
+        for url in urls:
+            tasks.append(asyncio.ensure_future(get_post(client, url)))
+        items = await asyncio.gather(*tasks)
+        return items
 
 def explore_posts(request, pk):
     url = request.build_absolute_uri()
@@ -410,32 +395,25 @@ def explore_posts(request, pk):
         if res.status_code < 400:
             posts.extend(json.loads(res.content.decode('utf-8'))['items'])
             # print('team 18 posts added')
-        # team 6 needs to loop through all authors
+        # these will be done with asyncio 
         team_6_authors = client.get('https://socialdistribution-cmput404.herokuapp.com/authors/')
         if team_6_authors.status_code < 400:
             team_6_authors = json.loads(team_6_authors.content.decode('utf-8'))['items']
-            for author in team_6_authors:
-                a_posts = client.get(author['url'].strip('/')+'/posts/', auth=HTTPBasicAuth('argho', '12345678!'), timeout=5)
-                if a_posts.status_code < 400:
-                    # print('team 6 author posts retrieved')
-                    posts.extend(json.loads(a_posts.content.decode('utf-8'))['items'])
+            urls = [a['url'].strip('/')+'/posts/' for a in team_6_authors]
+            t6_posts = asyncio.run(get_posts( urls, username='argho', password='12345678!'))
+            posts.extend(t6_posts)
         # team 9 also needs to loop
         team_9_authors = client.get('https://team9-socialdistribution.herokuapp.com/service/authors')
         if team_9_authors.status_code < 400:
             team_9_authors = json.loads(team_9_authors.content.decode('utf-8'))['items']
-            for author in team_9_authors:
-                a_url = author['url'].replace('/authors','/service/authors')
-                a_url = a_url.strip('/')+'/posts/'
-                # print(a_url)
-                a_posts = client.get(a_url, timeout=5)
-                if a_posts.status_code < 400:
-                    # print('team 9 author posts retrieved')
-                    # print(json.loads(a_posts.content.decode('utf-8')))
-                    posts.extend(json.loads(a_posts.content.decode('utf-8')))
+            urls = [a['url'].replace('/authors', '/service/authors').strip('/')+'/posts/' for a in team_9_authors if TEAM_9 in a]
+            t9_posts = asyncio.run(get_posts(urls))
+            posts.extend(t9_posts)
+        posts = [p for p in posts if p != None]
         for p in posts:
-            print('\n' + p['published'])
+            #print('\n' + p['published'])
             p['raw_content'] = p['content']
-            if p['contentType'] == 'text/markdown':
+            if p['contentType'].lower() == 'text/markdown':
                 p['content'] = commonmark.commonmark(p['content'])
         posts = sorted(posts, key=lambda i:i['published'], reverse=True)
     return render(request, 'homepage/explore.html', {'items': posts, 'home_url':home_url})
@@ -449,6 +427,9 @@ def homepage_view(request, pk):
     is_local_user = author.host in LOCAL_NODES
     is_team_6 = TEAM_6 in author.host
     is_team_9 = TEAM_9 in author.host
+    if not request.session.get('user_data'):
+        login_url = url.split(pk)[0].replace('authors/', 'login/')
+        return HttpResponseRedirect(login_url)
     username = request.session['user_data'][0]
     password = request.session['user_data'][1]
     load_error = False
