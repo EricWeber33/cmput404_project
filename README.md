@@ -36,6 +36,12 @@ CMPUT 404 group project https://cmput404f22t17.herokuapp.com/
 | Houston Le            | [Houston Le](https://github.com/houstonle)           |
 | Kevin Zhu             | [Kevin Zhu ](https://github.com/OmgPockii) |
 
-
+## General Usage notes
+- If the app appears to not log-in just try again
+- The remote registration feature was added because of misunderstanding the project requirements, using it is not recommended
+## New features since presentation
+- Now can edit, repost, and delete posts.
+- Can now send and recieve remote likes
+- Some parts of django view based frontend are now asynchronous, making the explore posts page much faster
 ## License
 [License Details](/LICENSE)
