@@ -8,7 +8,9 @@
         </div>
         <div class="author">
             <div class="author_link">
-                <a href="{{ item.author.url }}"> {{ item.author.displayName }}</a>
+                {% with author_id=item.author.id|spliturl|index:2 %}
+                <a href="{{ profile_url }}{{ author_id }}/"> {{ item.author.displayName }}</a>
+                {% endwith %}
             </div>
             <div class="author_img">
                 <img id="profileImage" src="{{ item.author.profileImage }}" onerror="this.onerror=null; this.src='https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_960_720.png'" alt="Default Profile Image">

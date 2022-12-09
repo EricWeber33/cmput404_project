@@ -14,6 +14,8 @@ urlpatterns = [
     re_path('^authors/(?P<pk>.+)/explore/like_submit/$', views.like_submit),
     re_path('^authors/(?P<pk>.+)/explore/$', views.explore_posts),
     re_path('^authors/(?P<pk>.+)/githubactivity/$', views.github_activity),
+    re_path('^authors/(?P<pk>.+)/profile/(?P<author_id>.+)/$', views.profile_page),
+    re_path('^authors/(?P<pk>.+)/profile/update_profile/$', views.update_profile),
     re_path('^authors/(?P<pk>.+)/myfollowers/$', views.authors_followers),
 ]
 urlpatterns = format_suffix_patterns(urlpatterns)
