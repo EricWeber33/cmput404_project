@@ -69,6 +69,6 @@ class Like(models.Model):
     context = models.CharField(max_length=200)
     type = "Like"
     summary = models.CharField(max_length=500)
-    author = models.ForeignKey(Author, on_delete=models.CASCADE)
+    author = models.JSONField()
     object = models.URLField(max_length=250)
 
