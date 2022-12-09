@@ -44,5 +44,6 @@ CMPUT 404 group project https://cmput404f22t17.herokuapp.com/
 - Can now send and recieve remote likes
 - Some parts of django view based frontend are now asynchronous, making the explore posts page much faster
 - Link added to go view your own followers on the homepage
+- Github integration with accounts with valid githubs
 ## License
 [License Details](/LICENSE)
