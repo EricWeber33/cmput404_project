@@ -410,7 +410,7 @@ def explore_posts(request, pk):
             urls = [a['url'].replace('/authors', '/service/authors').strip('/')+'/posts/' for a in team_9_authors if TEAM_9 in a]
             t9_posts = asyncio.run(get_posts(urls))
             posts.extend(t9_posts)
-        posts = [p for p in posts if p != None]
+        posts = [p for p in posts if p != None and p.get('content')]
         for p in posts:
             #print('\n' + p['published'])
             p['raw_content'] = p['content']
