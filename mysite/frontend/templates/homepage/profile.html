@@ -1,48 +1,65 @@
 {% load static %}
+{% load frontend_extras %}
 <html>
     <head>
-    <style>
-        #profileImage { float: left; border-radius: 50%; margin: 5%; height: 200px; width: 200px;}
-        #profileInfo {margin: 7%; font-size: 125%;}
-        .identifier {font-weight: 900; margin-top: 3%; margin-left: 5%;}
-        #updateProfile {font-family: monospace; margin-bottom: 3%;}
-        /* .tab {overflow: hidden;border: 1px solid inherit;background-color: inherit;}
-        .tab button {font-family: monospace; font-weight: 900; font-size: large;background-color: inherit; float: left; border: none; outline: none; cursor: pointer; padding: 14px 16px; transition: 0.3s; color: #ddd; width: 50%;}
-        .tab button:hover {background-color:  rgb(0, 225, 255);}
-        .tab button.active {background-color: #ccc;}
-        .tabcontent {display: none;padding: 6px 12px;border: 1px solid #ccc;border-top: none;} */
-    </style>
         <link rel="stylesheet" href="{% static 'home.css' %}">
     </head>
-    <h1>{{ author.displayName }}'s Profile</h1>
-    <hr class="item_separator">
-    <div>
-        <img id="profileImage" src="{{ author.profileImage }}" onerror="this.onerror=null; this.src='https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_960_720.png'" alt="Default Profile Image">
-    </div>
-    <div id="profileInfo">
-        <p class="identifier"> Display Name: </p> 
-        <p>{{ author.displayName }}</p>
-        <p class="identifier">Github: </p>
-        <p>{{ author.github }}</p>     
-    </div>
-    <br><br><br>
-    {% if profileForm %}
-    <hr class="item_separator">
-    <h2>Update Profile</h2>
-    <div id="updateProfile">
-        <form method="post" action="update_profile/" enctype="multipart/form-data">
-            {% csrf_token %}
-            {{ profileForm }}
-            <button type="editProfile" style="margin-top: 1%;">Edit Profile</button>
-        </form>
+    <body>
+        {% with author_id=request.path|spliturl|index:2%}
+        <h1>Social Distribution</h1>
+        {% include './header.html' %}
+        <hr class="item_separator">
+        <h2>{{ author.displayName }}'s Profile</h2>
+        <hr class="item_separator">
+        <div>
+            <img id="profileImage" src="{{ author.profileImage }}" onerror="this.onerror=null; this.src='https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_960_720.png'" alt="Default Profile Image">
+        </div>
+        <div id="profileInfo">
+            <p class="identifier"> Display Name: </p> 
+            <p>{{ author.displayName }}</p>
+            <p class="identifier">Github: </p>
+            <p>{{ author.github }}</p>
+            {% if author_id != author.id|spliturl|index:2 %}
+                <button class='friend_request_btn' data-url="{{author.url}}">Send Follow Request</button>
+            {% endif %}
+        </div>
+        <br><br><br>
+        {% if profileForm %}
+        <hr class="item_separator">
+        <h2>Update Profile</h2>
+        <div id="updateProfile">
+            <form method="post" action="update_profile/" enctype="multipart/form-data">
+                {% csrf_token %}
+                {{ profileForm }}
+                <button type="editProfile" style="margin-top: 1%;">Edit Profile</button>
+            </form>
 
-    </div>
-    <hr class="item_separator">
-    {% endif %}  
-    <!-- <div class="tab">
-        <form>
-            <button class="tablinks">Posts</button>
-        </form>
-        <button class="tablinks">Following</button>
-    </div> -->
+        </div>
+        <hr class="item_separator">
+        {% endif %}  
+        <!-- <div class="tab">
+            <form>
+                <button class="tablinks">Posts</button>
+            </form>
+            <button class="tablinks">Following</button>
+        </div> -->
+        <script>
+            let btn = document.querySelector('.friend_request_btn');
+            btn.onclick = () => {
+                let obj = btn.dataset.url;
+                let url = "{{request.scheme}}://{{request.get_host}}/authors/{{author_id}}/home/send_follow/"
+                fetch(url, {
+                    method: 'POST',
+                    headers: { "X-CSRFToken": '{{csrf_token}}' },
+                    body: JSON.stringify({obj}),
+                }).then(resp => {
+                    if (resp.status === 200) {
+                        // success
+                    }
+                    // error
+                })
+            }
+        </script>
+        {% endwith %}
+    </body>
 </html>

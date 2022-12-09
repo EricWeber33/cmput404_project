@@ -7,8 +7,8 @@ from .models import Like, Post, Comment, Comments
 class UpdatePostSerializer(serializers.ModelSerializer):  #Returns what has been updated in the creation of a Post
     class Meta:
         model = Post
-        fields = ('title', 'description', 'content', 'contentType',
-            'visibility', 'unlisted')
+        fields = ('title', 'description',  'source', 'origin', 'content', 'contentType',
+            'visibility', 'unlisted',)
 
 class CommentSerializer(serializers.ModelSerializer):
     id = serializers.CharField()

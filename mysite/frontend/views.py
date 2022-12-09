@@ -1,12 +1,13 @@
 from django.shortcuts import render
-from django.http import HttpResponseRedirect, HttpResponse
+from django.http import HttpResponseRedirect, HttpResponse, JsonResponse
 from django.middleware.csrf import get_token
 from django.contrib.sites.shortcuts import get_current_site
+from django.template.loader import render_to_string
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.decorators import permission_classes
 from PIL import Image
 from inbox.models import Inbox
-from authors.models import Author
+from authors.models import Author, FollowRequest
 from authors.serializer import AuthorSerializer
 from posts.models import Post, Comment, Comments, Like
 from posts.serializer import PostSerializer, CommentSerializer, LikeSerializer
@@ -211,15 +212,24 @@ def post_submit(request, pk):
         
 
 @permission_classes(IsAuthenticated,)
-def repost_submit(request, pk, post_id):
+def repost_submit(request, pk):
     author = get_object_from_url(Author, pk)
-    post = get_object_from_url(Post, post_id)
     url = request.build_absolute_uri()
     home_url = url.split('/home/')[0] + "/home/"
     post_endpoint = url.split('/home/')[0] + "/posts/"
+    post_url = json.loads(request.body)['id']
     if request.method == 'POST':
+        with requests.Session() as client:
+            if TEAM_9 in post_url:
+                post_url = post_url.replace('/authors', '/service/authors')
+            post = client.get(post_url)
+            if not post or post.status_code >= 400:
+                post = client.get(post_url+'/')
+            post = post.content.decode('utf-8')
+            post = json.loads(post)
         post_data = PostSerializer(post).data
         post_data['csrfmiddlewaretoken'] = get_token(request)
+        post_data['source'] = post_url
         with requests.Session() as client:
             client.headers.update(request.headers)
             client.headers.update({
@@ -235,7 +245,16 @@ def repost_submit(request, pk, post_id):
             if response.status_code < 400:
                 post = response.content.decode('utf-8')
                 send_post_to_inboxs(request, post, pk)
-                return HttpResponseRedirect(home_url)
+                new_post = json.loads(post)
+                new_post['raw_content'] = new_post['content']
+                if new_post['contentType'].lower() == 'text/markdown':
+                    new_post['content'] = commonmark.commonmark(new_post['content'])
+                html = render_to_string(
+                    template_name='homepage/post.html',
+                    context={'item': new_post},
+                    request=request
+                )
+                return JsonResponse(data={'html': html}, status=201)
             return HttpResponse('Could not repost.', status=response.status_code)
 
     return HttpResponseRedirect(home_url)
@@ -635,6 +654,67 @@ def github_activity(request, pk):
     return render(request, 'homepage/github.html', {'items': github_events, 'home_url':home_url})
 
 @permission_classes(IsAuthenticated,)
+def send_follow_request(request, pk):
+    author = get_object_from_url(Author, pk)
+    url = request.build_absolute_uri()
+    home_url = url.split('/home/')[0] + "/home/"
+    # object is the user author wants to follow
+    object_url = json.loads(request.body)['obj']
+    with requests.Session() as client:
+        if TEAM_9 in object_url:
+            object_url = object_url.replace('/authors', '/service/authors')
+        obj = client.get(object_url)
+        if not obj or obj.status_code >= 400:
+            obj = client.get(object_url+'/')
+        obj = obj.content.decode('utf-8')
+        obj = json.loads(obj)
+        actor = AuthorSerializer(author).data
+        send = {
+            'type': 'Follow',
+            'summary': '{} wants to follow {}'.format(actor.get('displayName'), obj.get('displayName')),
+            'actor': actor,
+            'object': obj
+        }
+        headers = {
+            "accept":"application/json", 
+            'Content-Type': 'application/json'
+        }
+        res = client.post(object_url.strip('/')+'/inbox/', json=json.dumps(send), headers=headers)
+        if res.status_code < 400:
+            return HttpResponse(status=200)
+        else:
+            print(res)
+            return HttpResponse(status=res.status_code)
+
+@permission_classes(IsAuthenticated,)
+def follow_request_respond(request, pk):
+    author = get_object_from_url(Author, pk)
+    url = request.build_absolute_uri()
+    home_url = url.split('/home/')[0] + "/home/"
+    data = json.loads(request.body)
+    actor_url = data['actor'] # request sender
+    object_url = data['obj'] # request reciever, must be local user
+    response = data['response'] # 'yes' or 'no'
+    follow_reqs = FollowRequest.objects.filter(actor__url=actor_url, object__url=object_url)
+    with requests.Session() as client:
+        if response.lower() == 'yes':
+            username = request.session['user_data'][0]
+            password = request.session['user_data'][1]
+            client.auth = HTTPBasicAuth(username, password)
+            follow_url = object_url.strip('/')+'/followers/{}/'.format(actor_url.split('/authors/')[1].strip('/'))
+            obj = client.put(follow_url, data={'url': actor_url})
+        follow_reqs.delete()
+        inbox = Inbox.objects.get(author=author.url)
+        removal_list = []
+        for i, post in enumerate(inbox.items):
+            if post['type'] == 'Follow':
+                if post['actor']['url'] == actor_url:
+                    removal_list.append(i)
+        for i in reversed(removal_list):
+            inbox.items.pop(i)
+        inbox.save()
+        return HttpResponseRedirect(home_url)
+
 def profile_page(request, pk, author_id):
     author = get_object_from_url(Author, author_id)
     print(author)

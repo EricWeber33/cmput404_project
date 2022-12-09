@@ -7,8 +7,9 @@
         <script src="https://kit.fontawesome.com/adfcecb43a.js" crossorigin="anonymous"></script>
     </head>
     <body>
+        {% with author_id=request.path|spliturl|index:2%}
         <h1>Social Distribution</h1>
-        <a href="{{ home_url }}">Home</a>
+        {% include './header.html' %}
         <hr class="item_separator">
         <div>
             {% for item in items %}
@@ -18,5 +19,6 @@
                     </div>
             {% endfor %}
         </div>
+        {% endwith %}
     </body>
 </html>

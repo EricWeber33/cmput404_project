@@ -8,6 +8,7 @@ urlpatterns = [
     path('register/', views.register_view, name='register'),
     path('logout/', views.logout_view, name='logout'),
     path('authors/', views.AuthorList.as_view()),
+    path('authors/search/', views.author_search),
     re_path('^authors/(?P<pk>.+)/followers/$', views.FollowerList.as_view()),
     re_path('^authors/(?P<author_id>.+)/followers/(?P<foreign_author_id>.+)/$', views.FollowerDetail.as_view()),
     re_path('^authors/(?P<author_id>.*)/sendfollowrequest/$', views.MakeFollowRequest.as_view(), name='follow_request'),

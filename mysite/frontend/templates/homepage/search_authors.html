@@ -1,0 +1,62 @@
+<script>
+    const user_input = document.getElementById('searchInput');
+    const searchResults = document.getElementById('searchResults');
+    const endpoint = '{{request.scheme}}://{{request.get_host}}/authors/search/';
+    const delay = 700;
+    let scheduled_function = false;
+
+    let func_call = (url, params) => {
+        Object.keys(params).forEach(key => {
+            url.searchParams.append(key, params[key]);
+        });
+        fetch(url).then(res => {
+            if (res.status === 200) {
+                return res.json();
+            }
+            return {};
+        }).then(data => {
+            if (data.html){
+                if (document.activeElement === user_input) {
+                    searchResults.replaceChildren();
+                    searchResults.insertAdjacentHTML('afterbegin', data.html);
+                    searchResults.style.display = 'block';
+                    scheduled_function = false;
+                }
+            }
+        }).catch(err => {
+            console.error(err);
+        })
+    }
+
+    user_input.onkeyup =  (event) => {
+        searchResults.style.display = 'block';
+        const params = {
+            q: user_input.value,
+        }
+
+        if (scheduled_function) {
+            clearTimeout(scheduled_function);
+        } else {
+            searchResults.insertAdjacentHTML('afterbegin', '<p>Loading...</p>');
+        }
+        url = new URL(endpoint);
+        scheduled_function = setTimeout(func_call, delay, url, params);
+    }
+    user_input.onblur = () => {
+        setTimeout(() => {
+            searchResults.style.display = 'none';
+        }, 500)
+    }
+    user_input.onfocus = () => {
+        searchResults.style.display = 'block';
+    }
+    window.addEventListener('DOMContentLoaded', () => {
+        if (user_input.value.length > 0) {
+            user_input.focus();
+            searchResults.style.display = 'block';
+            searchResults.insertAdjacentHTML('afterbegin', '<p>Loading...</p>');
+            url = new URL(endpoint);
+            scheduled_function = setTimeout(func_call, delay, url, {q: user_input.value})
+        }
+    })
+</script>
