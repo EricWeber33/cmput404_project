@@ -716,6 +716,7 @@ def follow_request_respond(request, pk):
         return HttpResponseRedirect(home_url)
 
 def profile_page(request, pk, author_id):
+    author_id = author_id.split('/')[0]
     author = get_object_from_url(Author, author_id)
     print(author)
     data = {
