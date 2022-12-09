@@ -637,6 +637,7 @@ def github_activity(request, pk):
 @permission_classes(IsAuthenticated,)
 def profile_page(request, pk, author_id):
     author = get_object_from_url(Author, author_id)
+    print(author)
     data = {
         'github': author.github,
         'profileImage': author.profileImage
@@ -650,7 +651,8 @@ def profile_page(request, pk, author_id):
 @permission_classes(IsAuthenticated,)
 def update_profile(request, pk):
     url = request.build_absolute_uri()
-    profileUrl = url.split('/profile/')[0] + '/profile/'
+    author = get_object_from_url(Author, pk)
+    profileUrl = url.split('/profile/')[0] + '/profile/' + author.id
     author_endpoint = url.split('/profile/')[0] + '/'
     print(author_endpoint)
     if request.method == 'POST':
