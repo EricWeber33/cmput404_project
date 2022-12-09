@@ -5,8 +5,9 @@ from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.hashers import make_password
 from django.contrib.auth.models import User
 from django.contrib.sites.shortcuts import get_current_site
-from django.http import Http404, HttpResponse, HttpResponseRedirect
+from django.http import Http404, HttpResponse, HttpResponseRedirect, JsonResponse
 from django.shortcuts import get_object_or_404, render
+from django.template.loader import render_to_string
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -29,8 +30,34 @@ class AuthenticatePut(permissions.BasePermission):
             return True
         return request.user and request.user.is_authenticated
 
+AUTHOR_URLS = [
+    'https://cmput404f22t17.herokuapp.com/authors/',
+    'https://cmput404team18-backend.herokuapp.com/backendapi/authors/'
+    'https://socialdistribution-cmput404.herokuapp.com/authors/',
+    'https://team9-socialdistribution.herokuapp.com/service/authors/',
+]
 # Create your views here.
-
+def author_search(request):
+    search = request.GET.get('q', '')
+    authors = []
+    with requests.Session() as client:
+        if '127.0.0.1' in request.get_host():
+            local_authors = AuthorSerializer(Author.objects.all(), many=True).data
+            authors.extend(local_authors)
+        for url in AUTHOR_URLS:
+            res = client.get(url)
+            if res.status_code < 400:
+                alist = json.loads(res.content.decode('utf-8'))['items']
+                for author in alist:
+                    if search in author['displayName']:
+                        authors.append(author)
+    html = render_to_string(
+        template_name='homepage/author_search_results.html',
+        context={'author_list':authors},
+        request=request,
+    )
+    return JsonResponse(data={'html': html}, status=200)
+    
 
 class AuthorList(APIView):
     # URL: ://service/authors/

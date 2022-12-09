@@ -1,0 +1,9 @@
+<ul class="searchList">
+    {% for author in author_list %}
+        <li>
+            <button class="searchAuthor" data-url="{{author.id}}">{{author.displayName}}</button>
+        </li>
+    {% empty %}
+        <li>No results found</li>
+    {% endfor %}
+</ul>

@@ -1,0 +1,20 @@
+<div class="header_links">
+    <ul>
+        <li>
+            <a class="{% if request.path == '/authors/'|add:author_id|add:'/home/' %}active_page{% endif %}" href="/authors/{{author_id}}/home/">Home</a>
+        </li>
+        <li>
+            <a class="{% if request.path == '/authors/'|add:author_id|add:'/explore/' %}active_page{% endif %}" href="/authors/{{author_id}}/explore/">Explore Posts</a>
+        </li>
+        <li>
+            <a class="{% if request.path == '/authors/'|add:author_id|add:'/githubactivity/' %}active_page{% endif %}" href="/authors/{{author_id}}/githubactivity/">GitHub Activity</a>
+        </li>
+        <li>
+            <div id="searchDropdown" class="dropdown-content">
+                <input type="text" placeholder="Search for authors" id="searchInput">
+                <div id="searchResults"></div>
+            </div>
+        </li>
+    </ul>
+    {% include './search_authors.html' %}
+</div>
