@@ -16,7 +16,7 @@ import datetime
 import requests
 from posts.models import Post, Comment, Comments
 from posts.serializer import CommentSerializer, PostSerializer
-from .forms import PostForm
+from .forms import PostForm, profileUpdateForm
 import uuid
 from requests.auth import HTTPBasicAuth
 import json
@@ -423,6 +423,7 @@ def homepage_view(request, pk):
     url = request.build_absolute_uri().split('home/')[0]
     explore_url = request.build_absolute_uri().replace('/home', '/explore')
     git_url = request.build_absolute_uri().replace('/home', '/githubactivity')
+    profile_url = request.build_absolute_uri().replace('/home', '/profile')
     author = Author.objects.get(pk=url.strip('/').split('/')[-1])
     is_local_user = author.host in LOCAL_NODES
     is_team_6 = TEAM_6 in author.host
@@ -524,6 +525,7 @@ def homepage_view(request, pk):
         'explore_url':explore_url,
         "load_error": load_error,
         "git_url" : git_url,
+        "profile_url": profile_url,
     })
 
 
@@ -601,3 +603,44 @@ def github_activity(request, pk):
         github_events.append(github_event)
 
     return render(request, 'homepage/github.html', {'items': github_events, 'home_url':home_url})
+
+@permission_classes(IsAuthenticated,)
+def profile_page(request, pk):
+    author = get_object_from_url(Author, pk)
+    data = {
+        'github': author.github,
+        'profileImage': author.profileImage
+    }
+    profileForm = profileUpdateForm(data)
+    return render(request, 'homepage/profile.html', {'author': author, 'profileForm': profileForm})
+
+@permission_classes(IsAuthenticated,)
+def update_profile(request, pk):
+    url = request.build_absolute_uri()
+    profileUrl = url.split('/profile/')[0] + '/profile/'
+    author_endpoint = url.split('/profile/')[0] + '/'
+    print(author_endpoint)
+    if request.method == 'POST':
+        form = profileUpdateForm(request.POST)
+        if form.is_valid():
+            github = form.cleaned_data.pop('github')
+            profileImage = form.cleaned_data.pop('profileImage')
+            post_data = {
+                "csrfmiddlewaretoken": get_token(request),
+                "github": github,
+                "profileImage": profileImage
+            }
+            with requests.Session() as client:
+                client.headers.update(request.headers)
+                client.headers.update({
+                    'Content-Type': None,
+                    'Content-Length': None,
+                    'Cookie': None
+                })
+                cookies = {
+                    'sessionid': request.session.session_key,
+                    'csrftoken': get_token(request)
+                }
+                client.post(author_endpoint, cookies=cookies, data=post_data, headers={'accept':'application/json'})
+    return HttpResponseRedirect(profileUrl)
+
