@@ -45,10 +45,12 @@
                 {% if item.type == "Like" %}
                     {% block like %} 
                     <div class="inbox_block">
-                        <p><a class="notif_link" href="{{ item.author.url }}">{{ item.author.displayName }}</a> 
+                        {% with author_id=item.author.id|spliturl|index:2 %}
+                        <p><a class="notif_link" href="{{profile_url}}{{ item.author.id }}/">{{ item.author.displayName }}</a> 
                             liked your <a class="notif_link" href="{{ item.object }}"> 
                             {{ item.object_type }}
                         </a></p>
+                        {% endwith %}
                     </div>
                     {% endblock %}
                 {% endif %}
