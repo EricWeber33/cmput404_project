@@ -7,98 +7,17 @@
         <script src="https://kit.fontawesome.com/adfcecb43a.js" crossorigin="anonymous"></script>
     </head>
     <body>
-        <h1>Social Distribution</h1>
-        <a href="{{ home_url }}">Home</a>
-        <hr class="item_separator">
         {% with author_id=request.path|spliturl|index:2%}
+        <h1>Social Distribution</h1>
+        {% include './header.html' %}
+        <hr class="item_separator">
         <div>
             {% for item in items %}
                 {% include "./post.html" %}
                 <hr class="item_separator">
             {% endfor %}
-            <script>
-                var repost_btns = document.querySelectorAll('.btn_repost');
-                repost_btns.forEach(btn => {
-                    btn.onclick = () => {
-                        let id = btn.dataset.id;
-                        let url = "{{request.scheme}}://{{request.get_host}}/authors/{{author_id}}/home/repost_submit/"+id+"/";
-                        console.log(url);
-                        fetch(url, {
-                            method: 'POST',
-                            headers: { "X-CSRFToken": '{{csrf_token}}' },
-                        }).then(resp => {
-                            console.log('repost', resp);
-                            if (resp.status > 399) {
-                                //some error
-                            }
-                        }).catch(err => {
-                            console.error(err);
-                        });
-                    }
-                })
-                var cpy_btns = document.querySelectorAll('.btn_copy_embed');
-                cpy_btns.forEach(btn => {
-                    btn.onclick = () => {
-                        var id = btn.dataset.url;
-                        navigator.clipboard.writeText(id+"image/")
-                    }
-                });
-                var edit_btns = document.querySelectorAll(".btn_edit_post");
-                edit_btns.forEach(btn => {
-                    btn.onclick = () => {
-                        var modal = btn.parentElement.parentElement.querySelector(".edit-post-modal");
-                        modal.style.display = 'block';
-                    }
-                });
-                var modal_close_btns = document.querySelectorAll('.close');
-                modal_close_btns.forEach(btn => {
-                    btn.onclick = () => {
-                        var modal = btn.parentElement.parentElement;
-                        modal.style.display = 'none';
-                    }
-                });
-                var delete_btns = document.querySelectorAll('.btn_delete_post');
-                delete_btns.forEach(btn => {
-                    btn.onclick = () => {
-                        let id = btn.dataset.id;
-                        let url = "{{request.scheme}}://{{request.get_host}}/authors/{{author_id}}/home/delete_post/"+id+"/";
-                        fetch(url, {
-                            method: 'DELETE',
-                            headers: { "X-CSRFToken": '{{csrf_token}}' },
-                        }).then(res=>{
-                            if (res.status == 204) {
-                                // hide deleted post
-                                btn.parentElement.parentElement.style.display = 'none';
-                                // hide separator
-                                btn.parentElement.parentElement.nextElementSibling.style.display = 'none';
-                            } else {
-                                console.error(res);
-                            }
-                        }).catch(err => {
-                            console.error(err);
-                        })
-                    }
-                })
-                var like_buttons = document.querySelectorAll('.like_post_button');
-                like_buttons.forEach(btn => {
-                    btn.onclick = () => {
-                        let id = btn.dataset.id;
-                        let url = "{{request.scheme}}://{{request.get_host}}/authors/{{author_id}}/home/like_post_submit/"+id+"/";
-                        fetch(url, {
-                            method: 'POST',
-                            headers: { "X-CSRFToken": '{{csrf_token}}' },
-                        }).then(res => {
-                            if (res.status == 200) {
-                                console.log('liked');
-                            } else {
-                                console.error(res);
-                            }
-                        }).catch(err=> {
-                            console.error(err);
-                        })
-                    }
-                })
-            </script>
+            {# using include and html instead of js file to allow passing vars from template #}
+            {% include './button_script.html' %}
         </div>
         {% endwith %}
     </body>

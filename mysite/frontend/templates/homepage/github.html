@@ -5,10 +5,9 @@
         <link rel="stylesheet" href="{% static 'home.css' %}">
     </head>
     <body>
+        {% with author_id=request.path|spliturl|index:2%}
         <h1>Social Distribution</h1>
-        <div class="header_links">
-            <a href="{{ home_url }}">Home</a>
-        </div>
+        {% include './header.html' %}
         <hr class="item_separator">
         <div>
             {% if items %}
@@ -26,5 +25,6 @@
             {% endif %}
         </div>
         <hr class="item_separator">
+        {% endwith %}
     </body>
 </html>

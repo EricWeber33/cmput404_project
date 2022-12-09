@@ -260,7 +260,6 @@ class PostList(APIView):
         Response containing the new post with a status code of 200. If failed a message indicating
         failure will be sent instead with a status code of 204
         '''
-        print(author_id)
         author = Author.objects.get(pk=author_id)
         url = author.url.strip('/') + '/posts/'
         serializer = self.serializer_class(data=request.data)
@@ -269,7 +268,8 @@ class PostList(APIView):
         if serializer.is_valid():  # fetch fields
             title = serializer.data.get('title')
             description = serializer.data.get('description')
-            source = f'{url}{postIDNew}/'
+            source = serializer.data.get('source', f'{url}{postIDNew}/')
+            origin = serializer.data.get('origin', source)
             content = serializer.data.get('content')
             contentType = serializer.data.get('contentType')
             visibility = serializer.data.get('visibility') #PUBLIC OR FRIENDS
@@ -285,7 +285,7 @@ class PostList(APIView):
                 title=title,
                 description=description,
                 source=source,
-                origin=source,
+                origin=origin,
                 content=content,
                 contentType=contentType,
                 author=author,

@@ -1,3 +1,101 @@
+
+<script>
+    function add_copy(btn) {
+        btn.onclick = () => {
+            var id = btn.dataset.url;
+            navigator.clipboard.writeText(id+"image/");
+        }
+    }
+    function add_edit(btn) {
+        btn.onclick = () => {
+            var modal = btn.parentElement.parentElement.querySelector(".edit-post-modal");
+            modal.style.display = 'block';
+        }
+    }
+    function add_close(btn) {
+        btn.onclick = () => {
+            var modal = btn.parentElement.parentElement;
+            modal.style.display = 'none';
+        }
+    }
+    function add_delete(btn) {
+        btn.onclick = () => {
+            let id = btn.dataset.id;
+            let url = "{{request.scheme}}://{{request.get_host}}/authors/{{author_id}}/home/delete_post/"+id+"/";
+            fetch(url, {
+                method: 'DELETE',
+                headers: { "X-CSRFToken": '{{csrf_token}}' },
+            }).then(res=>{
+                if (res.status == 204) {
+                    // hide deleted post
+                    btn.parentElement.parentElement.style.display = 'none';
+                    // hide separator
+                    btn.parentElement.parentElement.nextElementSibling.style.display = 'none';
+                } else {
+                    console.error(res);
+                }
+            }).catch(err => {
+                console.error(err);
+            })
+        }
+
+    }
+    function add_like(btn) {
+        btn.onclick = () => {
+            let id = btn.dataset.id;
+            let url = "{{request.scheme}}://{{request.get_host}}/authors/{{author_id}}/home/like_post_submit/"+id+"/";
+            fetch(url, {
+                method: 'POST',
+                headers: { "X-CSRFToken": '{{csrf_token}}' },
+            }).then(res => {
+                if (res.status == 200) {
+                    console.log('liked');
+                } else {
+                    console.error(res);
+                }
+            }).catch(err=> {
+                console.error(err);
+            })
+        }
+    }
+    function add_repost(btn) {
+        btn.onclick = () => {
+            let url = "{{request.scheme}}://{{request.get_host}}/authors/{{author_id}}/home/repost_submit/";
+            fetch(url, {
+                method: 'POST',
+                headers: { "X-CSRFToken": '{{csrf_token}}' },
+                body: JSON.stringify({id: btn.dataset.url}),
+            }).then(resp => {
+                console.log('repost', resp);
+                if (resp.status === 201) {
+                    return resp.json();
+                }
+                return {}
+            }).then(data => {
+                if (data.html) {
+                    let parent = document.getElementById('post_list');
+                    parent.insertAdjacentHTML('afterbegin', '<hr class="item_separator">');
+                    parent.insertAdjacentHTML('afterbegin', data.html);
+                    let btn_fnc = {
+                        '.btn_copy_embed': add_copy,
+                        '.btn_edit_post': add_edit,
+                        '.close': add_close,
+                        '.btn_delete_post': add_delete,
+                        '.like_post_button': add_like,
+                        '.btn_repost': add_repost,
+                    }
+                    for (const cls in btn_fnc) {
+                        let btn = parent.querySelector(cls);
+                        if (btn) {
+                            btn_fnc[cls](btn);
+                        }
+                    }
+                }
+            }).catch(err => {
+                console.error(err);
+            });
+        }
+    }
     function add_respond(btn, resp) {
         btn.onclick = () => {
             let actor = btn.parentElement.dataset.actor;
@@ -18,6 +116,29 @@
             })
         }
     }
+    var repost_btns = document.querySelectorAll('.btn_repost');
+    repost_btns.forEach(btn => {
+        add_repost(btn);
+    })
+    var cpy_btns = document.querySelectorAll('.btn_copy_embed');
+    cpy_btns.forEach(btn => {
+        add_copy(btn)
+    });
+    var edit_btns = document.querySelectorAll(".btn_edit_post");
+    edit_btns.forEach(btn => {
+        add_edit(btn);
+    });
+    var modal_close_btns = document.querySelectorAll('.close');
+    modal_close_btns.forEach(btn => {
+        add_close(btn);
+    });
+    var delete_btns = document.querySelectorAll('.btn_delete_post');
+    delete_btns.forEach(btn => {
+        add_delete(btn);
+    });
+    var like_buttons = document.querySelectorAll('.like_post_button');
+    like_buttons.forEach(btn => {
+        add_like(btn);
     });
     var follow_accept_btns = document.querySelectorAll('.follow_accept');
     follow_accept_btns.forEach(btn => {
@@ -27,3 +148,4 @@
     follow_reject_btns.forEach(btn => {
         add_respond(btn, 'no');
     });
+</script>
