@@ -1,0 +1,34 @@
+{% load static %}
+<html>
+    <head>
+    <style>
+    #profileImage { float: left; border-radius: 50%; margin: 5%; height: 200px; width: 200px;}
+    #profileInfo {margin: 7%; font-size: 125%;}
+    .identifier {font-weight: 900; margin-top: 3%; margin-left: 5%;}
+    #updateProfile {margin-bottom: 3%;}
+    </style>
+        <link rel="stylesheet" href="{% static 'home.css' %}">
+    </head>
+    <h1>{{ author.displayName }}'s Profile</h1>
+    <hr class="item_separator">
+    <div>
+        <img id="profileImage" src="{{ author.profileImage }}" onerror="this.onerror=null; this.src='https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_960_720.png'" alt="Default Profile Image">
+    </div>
+    <div id="profileInfo">
+        <p class="identifier"> Display Name: </p> 
+        <p>{{ author.displayName }}</p>
+        <p class="identifier">Github: </p>
+        <p>{{ author.github }}</p>     
+    </div>
+    <br><br><br>
+    <hr class="item_separator">
+    <h2>Update Profile</h2>
+    <div id="updateProfile">
+        <form method="post" action="update_profile/" enctype="multipart/form-data">
+            {% csrf_token %}
+            {{ profileForm }}
+            <button type="editProfile" style="margin-top: 1%;">Edit Profile</button>
+        </form>  
+    </div>
+    <hr class="item_separator">
+</html>
