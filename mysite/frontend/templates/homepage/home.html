@@ -6,6 +6,7 @@
         <link rel="stylesheet" href="{% static 'home.css' %}">
     </head>
     <body>
+        {% with author_id=request.path|spliturl|index:2%}
         <h1>Social Distribution</h1>
         <div class="header_links">
             <a href="{{ explore_url }}">Explore Posts</a>
@@ -40,102 +41,17 @@
                     {% block like %} 
                     <div class="inbox_block">
                         <p><a class="notif_link" href="{{ item.author.url }}">{{ item.author.displayName }}</a> 
-                            liked your <a class="notif_link" href="{{ item.object }}"> 
-                            {{ item.object_type }}
-                        </a></p>
-                    </div>
-                    {% endblock %}
-                {% endif %}
-                {% if item.type == "follow" %}
-                    {% block follow %} {% endblock %}
-                {% endif %}
-                {% if not forloop.last %}
-                    <hr class="item_separator">
-                {% endif %}
-            {% endfor %}
-            <script>
-                var repost_btns = document.querySelectorAll('.btn_repost');
-                repost_btns.forEach(btn => {
-                    btn.onclick = () => {
-                        let id = btn.dataset.id;
-                        let url = "{{request.scheme}}://{{request.get_host}}/authors/{{author_id}}/home/repost_submit/"+id+"/";
-                        console.log(url);
-                        fetch(url, {
-                            method: 'POST',
-                            headers: { "X-CSRFToken": '{{csrf_token}}' },
-                        }).then(resp => {
-                            console.log('repost', resp);
-                            if (resp.status > 399) {
-                                //some error
-                            }
-                        }).catch(err => {
-                            console.error(err);
-                        });
-                    }
-                })
-                var cpy_btns = document.querySelectorAll('.btn_copy_embed');
-                cpy_btns.forEach(btn => {
-                    btn.onclick = () => {
-                        var id = btn.dataset.url;
-                        navigator.clipboard.writeText(id+"image/")
-                    }
-                });
-                var edit_btns = document.querySelectorAll(".btn_edit_post");
-                edit_btns.forEach(btn => {
-                    btn.onclick = () => {
-                        var modal = btn.parentElement.parentElement.querySelector(".edit-post-modal");
-                        modal.style.display = 'block';
-                    }
-                });
-                var modal_close_btns = document.querySelectorAll('.close');
-                modal_close_btns.forEach(btn => {
-                    btn.onclick = () => {
-                        var modal = btn.parentElement.parentElement;
-                        modal.style.display = 'none';
-                    }
-                });
-                var delete_btns = document.querySelectorAll('.btn_delete_post');
-                delete_btns.forEach(btn => {
-                    btn.onclick = () => {
-                        let id = btn.dataset.id;
-                        let url = "{{request.scheme}}://{{request.get_host}}/authors/{{author_id}}/home/delete_post/"+id+"/";
-                        fetch(url, {
-                            method: 'DELETE',
-                            headers: { "X-CSRFToken": '{{csrf_token}}' },
-                        }).then(res=>{
-                            if (res.status == 204) {
-                                // hide deleted post
-                                btn.parentElement.parentElement.style.display = 'none';
-                                // hide separator
-                                btn.parentElement.parentElement.nextElementSibling.style.display = 'none';
-                            } else {
-                                console.error(res);
-                            }
-                        }).catch(err => {
-                            console.error(err);
-                        })
-                    }
-                })
-                var like_buttons = document.querySelectorAll('.like_post_button');
-                like_buttons.forEach(btn => {
-                    btn.onclick = () => {
-                        let id = btn.dataset.id;
-                        let url = "{{request.scheme}}://{{request.get_host}}/authors/{{author_id}}/home/like_post_submit/"+id+"/";
-                        fetch(url, {
-                            method: 'POST',
-                            headers: { "X-CSRFToken": '{{csrf_token}}' },
-                        }).then(res => {
-                            if (res.status == 200) {
-                                console.log('liked');
-                            } else {
-                                console.error(res);
-                            }
-                        }).catch(err=> {
-                            console.error(err);
-                        })
-                    }
-                })
-            </script>
+                    {% if item.type == "Follow" %}
+                        {% block follow %} 
+                        <div class="inbox_block">
+                            <p><a class="notif_link" href="{{ item.actor.url }}">{{ item.summary }} </a></p>
+                            <div class="follow_responses" data-actor="{{item.actor.url}}" data-id="{{item.id}}" data-object="{{item.object.url}}">
+                                <button class="follow_accept">Accept</button>
+                                <button class="follow_reject">Reject</button>
+                            </div>
+                        </div>
+                        {% endblock %}
+                    {% endif %}
         {% endwith %}
         </div>
     </body>

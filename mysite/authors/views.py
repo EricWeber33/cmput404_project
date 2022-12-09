@@ -159,8 +159,8 @@ class FollowerList(APIView):
         Returns response containing the followers
         '''
 
-        followers = Author.objects.filter(following__id__in=[pk])
-        serializer = AuthorSerializer(followers, many=True)
+        author = Author.objects.get(pk)
+        serializer = AuthorSerializer(author.following, many=True)
         return Response({"type": "followers", "items": serializer.data})
 
 
@@ -227,9 +227,27 @@ class FollowerDetail(APIView):
         '''
 
         current = get_object_or_404(Author, pk=author_id)
-        foreign = get_object_or_404(Author, pk=foreign_author_id)
-
-        if current in foreign.following.all():
+        
+        found = False
+        with requests.Session() as client:
+            hosts = AUTHOR_URLS.copy()
+            if '127.0.0.1' in request.get_host():
+                hosts.append('http://127.0.0.1/authors/')
+            for host in hosts:
+                if found:
+                    break
+                url = host+'{foreign_author_id}/followers'
+                foreign = client.get(url)
+                if not foreign or foreign.status_code >= 400:
+                    foreign = client.get(url+'/')
+                if foreign.status_code < 400:
+                    followers = foreign.content.decode('utf-8')
+                    followers = json.loads(followers).get('items', [])
+                    for follower in followers:
+                        if follower['url'] == current.url:
+                            found = True
+                            break
+        if found:
             return Response(f"{foreign.displayName} follows {current.displayName}")
         else:
             return Response(f"{foreign.displayName} does not follow {current.displayName}")
@@ -247,24 +265,28 @@ class FollowerDetail(APIView):
         Returns:
         Returns response containing if the follower was successfully added. 
         '''
-
+        
         current = get_object_or_404(Author, pk=author_id)
-        foreign = get_object_or_404(Author, pk=foreign_author_id)
+        data = request.data
+        with requests.Session() as client:
+            foreign = client.get(data['url'])
+            foreign = json.loads(foreign.content)
 
         # only authenticated users can approve their own follow requests
         if not request.user.is_authenticated or current.id != request.user.author.id:
             return Response("You are not allowed to perform this action.", status=status.HTTP_401_UNAUTHORIZED)
         else:
-            followerSet = FollowRequest.objects.all().filter(
-                object=current, actor=foreign)
+            followerSet = FollowRequest.objects.filter(
+                object__url=current.url, actor__url=foreign['url'])
 
             # check if a follow request exists to approve, else do not add follower
             if len(followerSet) != 0:
-                foreign.following.add(current)
-                return Response(f"Success. {foreign.displayName} follows you.")
+                current.following.append(foreign)
+                current.save()
+                return Response(f"Success. {foreign['displayName']} follows you.")
 
             else:
-                return Response(f"Follow request from {foreign.displayName} doesn't exist", status=status.HTTP_404_NOT_FOUND)
+                return Response(f"Follow request from {foreign['displayName']} doesn't exist", status=status.HTTP_404_NOT_FOUND)
 
     def delete(self, request, author_id, foreign_author_id):
         # DELETE [local]: remove FOREIGN_AUTHOR_ID as a follower of AUTHOR_ID

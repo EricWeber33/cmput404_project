@@ -1,0 +1,29 @@
+    function add_respond(btn, resp) {
+        btn.onclick = () => {
+            let actor = btn.parentElement.dataset.actor;
+            let obj = btn.parentElement.dataset.object;
+            let id = btn.parentElement.dataset.id;
+            console.log(btn.parentElement.dataset)
+            let url = '{{request.scheme}}://{{request.get_host}}/authors/{{author_id}}/home/follow_respond/';
+            fetch(url, {
+                method: 'POST',
+                headers: { "X-CSRFToken": '{{csrf_token}}' },
+                body: JSON.stringify({actor, response: resp, id, obj}),
+            }).then(resp => {
+                if (resp.status === 200) {
+                    // remove follow request
+                } else {
+                    //error message
+                }
+            })
+        }
+    }
+    });
+    var follow_accept_btns = document.querySelectorAll('.follow_accept');
+    follow_accept_btns.forEach(btn => {
+        add_respond(btn, 'yes');
+    });
+    var follow_reject_btns = document.querySelectorAll('.follow_reject');
+    follow_reject_btns.forEach(btn => {
+        add_respond(btn, 'no');
+    });

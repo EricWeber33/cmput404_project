@@ -3,7 +3,7 @@ from django.http import Http404, HttpResponse
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
-from authors.models import Author
+from authors.models import Author, FollowRequest
 from authors.serializer import AuthorSerializer
 from .models import Comment, Comments, Like, Post
 from django.db.models import Q
