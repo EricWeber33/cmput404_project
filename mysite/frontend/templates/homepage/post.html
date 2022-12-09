@@ -71,7 +71,9 @@
         {% endwith %}
         {% for comment in item.commentsSrc.comments %}
         <div class="comment">
-            <a href="{{ comment.author.url }}"> {{ comment.author.displayName }}</a>
+            {% with author_id=comment.author.id|spliturl|index:2 %}
+            <a href="{{ profile_url }}{{ author_id }}/"> {{ comment.author.displayName }}</a>
+            {% endwith %}
             <p>{{comment.comment}}</p>
             <form action="like_submit/" method="post">
                 {% csrf_token %}
