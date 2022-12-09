@@ -1,8 +1,11 @@
+{% load frontend_extras %}
 <ul class="searchList">
     {% for author in author_list %}
+        {% with item_id=author.id|spliturl|index:2 %}
         <li>
-            <button class="searchAuthor" data-url="{{author.id}}">{{author.displayName}}</button>
+            <a href="/authors/{{author_id}}/profile/{{item_id}}/" class="author_search_item">{{author.displayName}}</a>
         </li>
+        {% endwith %}
     {% empty %}
         <li>No results found</li>
     {% endfor %}

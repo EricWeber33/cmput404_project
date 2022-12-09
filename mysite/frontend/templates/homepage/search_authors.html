@@ -20,22 +20,6 @@
                     searchResults.replaceChildren();
                     searchResults.insertAdjacentHTML('afterbegin', data.html);
                     searchResults.style.display = 'block';
-                    let search_btns = searchResults.querySelectorAll('.searchAuthor').forEach(btn => {
-                        btn.onclick = () => {
-                            let obj = btn.dataset.url;
-                            let url = "{{request.scheme}}://{{request.get_host}}/authors/{{author_id}}/home/send_follow/";
-                            fetch(url, {
-                                method: 'POST',
-                                headers: { "X-CSRFToken": '{{csrf_token}}' },
-                                body: JSON.stringify({obj}),
-                            }).then(resp => {
-                                if (resp.status === 200) {
-                                    // success
-                                }
-                                // error
-                            })
-                        }
-                    })
                     scheduled_function = false;
                 }
             }
@@ -66,4 +50,13 @@
     user_input.onfocus = () => {
         searchResults.style.display = 'block';
     }
+    window.addEventListener('DOMContentLoaded', () => {
+        if (user_input.value.length > 0) {
+            user_input.focus();
+            searchResults.style.display = 'block';
+            searchResults.insertAdjacentHTML('afterbegin', '<p>Loading...</p>');
+            url = new URL(endpoint);
+            scheduled_function = setTimeout(func_call, delay, url, {q: user_input.value})
+        }
+    })
 </script>

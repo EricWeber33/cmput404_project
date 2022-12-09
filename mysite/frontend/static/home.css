@@ -196,6 +196,27 @@ p {
     background-color: #04AA6D;
 }
 
+#profileImage { 
+    float: left; 
+    border-radius: 50%; 
+    margin: 5%; 
+    height: 200px; 
+    width: 200px;
+}
+#profileInfo {
+    margin: 7%; 
+    font-size: 125%;
+}
+.identifier {
+    font-weight: 900; 
+    margin-top: 3%; 
+    margin-left: 5%;
+}
+#updateProfile {
+    font-family: monospace; 
+    margin-bottom: 3%;
+}
+
 #searchInput {
     box-sizing: border-box;
     font-size: 16px;
@@ -219,4 +240,21 @@ p {
 
 .searchList {
     list-style-type: none;
+    padding-left: 0px;
+    width: 100%;
+    display: inline-block;
+}
+.searchList li {
+    width: 100%;
+}
+
+.author_search_item {
+    border: 1px solid #ddd;
+    display: block;
+    text-align: center;
+    color: inherit;
+}
+
+.author_search_item:visited {
+    color: inherit;
 }

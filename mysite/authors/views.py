@@ -38,6 +38,7 @@ AUTHOR_URLS = [
 ]
 # Create your views here.
 def author_search(request):
+    author_id = request.user.author.id
     search = request.GET.get('q', '')
     authors = []
     with requests.Session() as client:
@@ -53,7 +54,10 @@ def author_search(request):
                         authors.append(author)
     html = render_to_string(
         template_name='homepage/author_search_results.html',
-        context={'author_list':authors},
+        context={
+            'author_list':authors,
+            'author_id': author_id
+        },
         request=request,
     )
     return JsonResponse(data={'html': html}, status=200)
@@ -168,9 +172,8 @@ class FollowerList(APIView):
         Returns response containing the followers
         '''
 
-        author = Author.objects.get(pk)
-        serializer = AuthorSerializer(author.following, many=True)
-        return Response({"type": "followers", "items": serializer.data})
+        author = Author.objects.get(pk=pk)
+        return Response({"type": "followers", "items": author.following})
 
 
 class MakeFollowRequest(APIView):

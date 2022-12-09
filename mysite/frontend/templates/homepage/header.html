@@ -10,7 +10,7 @@
             <a class="{% if request.path == '/authors/'|add:author_id|add:'/githubactivity/' %}active_page{% endif %}" href="/authors/{{author_id}}/githubactivity/">GitHub Activity</a>
         </li>
         <li>
-            <a class="{% if request.path == '/authors/'|add:author_id|add:'/profile/update_profile' %}active_page{% endif %}" href="/authors/{{author_id}}/profile/update_profile/">Your Profile</a>
+            <a class="{% if request.path == '/authors/'|add:author_id|add:'/profile/'|add:author_id|add:'/' %}active_page{% endif %}" href="/authors/{{author_id}}/profile/{{author_id}}/">Your Profile</a>
         </li>
         <li>
             <a class="{% if request.path == '/authors/'|add:author_id|add:'/myfollowers/' %}active_page{% endif %}" href="/authors/{{author_id}}/myfollowers/">Followers</a>
