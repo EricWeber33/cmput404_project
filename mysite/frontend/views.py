@@ -636,6 +636,7 @@ def github_activity(request, pk):
 
 @permission_classes(IsAuthenticated,)
 def profile_page(request, pk, author_id):
+    author_id = author_id.split('/')[0]
     author = get_object_from_url(Author, author_id)
     print(author)
     data = {
