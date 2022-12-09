@@ -1,0 +1,22 @@
+<!-- templates/registration/login.html -->
+{% load static %}
+{% load frontend_extras %}
+<html>
+    <head>
+        <link rel="stylesheet" href="{% static 'home.css' %}">
+        <script src="https://kit.fontawesome.com/adfcecb43a.js" crossorigin="anonymous"></script>
+    </head>
+    <body>
+        <h1>Social Distribution</h1>
+        <a href="{{ home_url }}">Home</a>
+        <hr class="item_separator">
+        <div>
+            {% for item in items %}
+                <div class="inbox_block"></div>
+                    <div>
+                        <h3>{{ item.displayName }}</h3>
+                    </div>
+            {% endfor %}
+        </div>
+    </body>
+</html>

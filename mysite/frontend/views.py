@@ -418,11 +418,28 @@ def explore_posts(request, pk):
         posts = sorted(posts, key=lambda i:i['published'], reverse=True)
     return render(request, 'homepage/explore.html', {'items': posts, 'home_url':home_url})
 
+def authors_followers(request, pk):
+
+    url = request.build_absolute_uri()
+    home_url = url.replace('/myfollowers', '/home')
+    author = Author.objects.get(pk=pk)
+    followers_events = []
+
+    with requests.Session() as client:
+        client.headers = {'accept':'application/json'}
+        res = client.get(author.url.strip('/')+'/followers/')
+        if res.status_code >= 400: 
+            return render(request, 'homepage/myfollowers.html', {'items': None, 'home_url':home_url})
+        else:
+                followers_events.extend(json.loads(res.content.decode('utf-8'))['items'])
+    return render(request, 'homepage/myfollowers.html', {'items': followers_events, 'home_url':home_url})
+
 @permission_classes(IsAuthenticated,)
 def homepage_view(request, pk):
     url = request.build_absolute_uri().split('home/')[0]
     explore_url = request.build_absolute_uri().replace('/home', '/explore')
     git_url = request.build_absolute_uri().replace('/home', '/githubactivity')
+    followers_url = request.build_absolute_uri().replace('/home', '/myfollowers')
     author = Author.objects.get(pk=url.strip('/').split('/')[-1])
     is_local_user = author.host in LOCAL_NODES
     is_team_6 = TEAM_6 in author.host
@@ -524,6 +541,7 @@ def homepage_view(request, pk):
         'explore_url':explore_url,
         "load_error": load_error,
         "git_url" : git_url,
+        "followers_url" : followers_url,
     })
 
 
