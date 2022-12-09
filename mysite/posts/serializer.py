@@ -16,7 +16,15 @@ class CommentSerializer(serializers.ModelSerializer):
     class Meta:
         model = Comment
         fields = ('type', 'author', 'comment', 'contentType', 'published', 'id')
-
+    
+    def to_representation(self, instance):
+        ret = super().to_representation(instance)
+        try:
+            comment = Comment.objects.get(id=ret['id'])
+            comment_src = Comments.objects.all().filter(comments=comment)
+            ret['id'] = comment_src[0].post.strip('/') + '/comments/' + ret['id'] +'/'
+        finally:
+            return ret
 
 class CommentsSerializer(serializers.ModelSerializer):
     comments = CommentSerializer(many=True)
@@ -45,7 +53,6 @@ class PostListSerializer(serializers.Serializer):
     items = PostSerializer(many=True)
 
 class LikeSerializer(serializers.ModelSerializer):
-    author = AuthorSerializer()
     object = serializers.CharField()
     class Meta:
         model = Like
@@ -55,6 +62,7 @@ class LikeSerializer(serializers.ModelSerializer):
         ret = super().to_representation(instance)
         ret['@context'] = ret['context']
         ret.pop('context')
-        ret.pop('id')
         ret['type'] = 'Like'
+        if ret.get('id'):
+            ret.pop('id')
         return ret

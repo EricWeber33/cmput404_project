@@ -10,3 +10,7 @@ class PostForm(forms.Form):
     visibility = forms.ChoiceField(choices=Post.VISIBILITY_CHOICES)
 
     image = forms.ImageField(required=False)
+
+class profileUpdateForm(forms.Form):
+	github = forms.CharField(label='New Github Profile Link:', required=False)
+	profileImage = forms.CharField(label='New Profile Image Link:', required=False)

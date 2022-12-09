@@ -8,7 +8,9 @@
         </div>
         <div class="author">
             <div class="author_link">
-                <a href="{{ item.author.url }}"> {{ item.author.displayName }}</a>
+                {% with author_id=item.author.id|spliturl|index:2 %}
+                <a href="{{ profile_url }}{{ author_id }}/"> {{ item.author.displayName }}</a>
+                {% endwith %}
             </div>
             <div class="author_img">
                 <img id="profileImage" src="{{ item.author.profileImage }}" onerror="this.onerror=null; this.src='https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_960_720.png'" alt="Default Profile Image">
@@ -45,12 +47,14 @@
             <button class="btn_copy_embed" data-url="{{item.source}}">Copy Embed Link</button>
         {% endif %}
         <!--like-->
-        <div class="like_box">
-            <button class="like_post_button" data-id="{{post_id}}">
-                <i class="fa fa-thumbs-up"></i>
-            </button>
-            <p>{{item.like_count}}</p>
-        </div>
+        <form action="like_submit/" method="post">
+            {% csrf_token %}
+            <input type="hidden" name="obj_id" value="{{ item.id }}">
+            <div class="like_box">
+                <button type="submit" id="like_comment_button"><i class="fa fa-thumbs-up"></i></button>
+                <p>{{item.like_count}}</p>
+            </div>
+        </form>
     </div>
     <div class="comment_box">
         <!-- We don't support commenting on remote posts-->
@@ -69,8 +73,10 @@
         <div class="comment">
             <a href="{{ comment.author.url }}"> {{ comment.author.displayName }}</a>
             <p>{{comment.comment}}</p>
-            <form action={{"like_comment_submit/"|add:item.comments|add:"/"|add:comment.id|add:"/"}} method="post">
+            <form action="like_submit/" method="post">
                 {% csrf_token %}
+                <input type="hidden" name="parent_post_id" value="{{ item.id }}">
+                <input type="hidden" name="obj_id" value="{{ comment.id }}">
                 <div class="like_box">
                     <button type="submit" id="like_comment_button"><i class="fa fa-thumbs-up"></i></button>
                     <p>{{comment.like_count}}</p>

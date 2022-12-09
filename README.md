@@ -24,7 +24,7 @@ CMPUT 404 group project https://cmput404f22t17.herokuapp.com/
 ## Connected Teams
 - Team 6 https://socialdistribution-cmput404.herokuapp.com/
 - Team 9 https://team9-socialdistribution.herokuapp.com/ 
-- Team 18 https://cmput404-backend.herokuapp.com/ 
+- Team 18 https://cmput404team18-backend.herokuapp.com/
 
 
 ## Contributors
@@ -36,6 +36,14 @@ CMPUT 404 group project https://cmput404f22t17.herokuapp.com/
 | Houston Le            | [Houston Le](https://github.com/houstonle)           |
 | Kevin Zhu             | [Kevin Zhu ](https://github.com/OmgPockii) |
 
-
+## General Usage notes
+- If the app appears to not log-in just try again
+- The remote registration feature was added because of misunderstanding the project requirements, using it is not recommended
+## New features since presentation
+- Now can edit, repost, and delete posts.
+- Can now send and recieve remote likes
+- Some parts of django view based frontend are now asynchronous, making the explore posts page much faster
+- Link added to go view your own followers on the homepage
+- Github integration with accounts with valid githubs
 ## License
 [License Details](/LICENSE)

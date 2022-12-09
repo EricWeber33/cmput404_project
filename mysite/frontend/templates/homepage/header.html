@@ -10,6 +10,12 @@
             <a class="{% if request.path == '/authors/'|add:author_id|add:'/githubactivity/' %}active_page{% endif %}" href="/authors/{{author_id}}/githubactivity/">GitHub Activity</a>
         </li>
         <li>
+            <a class="{% if request.path == '/authors/'|add:author_id|add:'/profile/update_profile' %}active_page{% endif %}" href="/authors/{{author_id}}/profile/update_profile/">Your Profile</a>
+        </li>
+        <li>
+            <a class="{% if request.path == '/authors/'|add:author_id|add:'/myfollowers/' %}active_page{% endif %}" href="/authors/{{author_id}}/myfollowers/">Followers</a>
+        </li>
+        <li>
             <div id="searchDropdown" class="dropdown-content">
                 <input type="text" placeholder="Search for authors" id="searchInput">
                 <div id="searchResults"></div>

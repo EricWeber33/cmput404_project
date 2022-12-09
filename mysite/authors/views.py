@@ -139,7 +139,16 @@ class AuthorDetail(APIView):
 
     def post(self, request, pk, format=None):
         # POST [local]: update AUTHOR_ID’s profile
-        pass
+        author = Author.objects.get(pk=pk)
+        data = request.data
+        # Fetch data
+        try:
+            author.github = data.get('github', author.github)
+            author.profileImage = data.get('profileImage', author.profileImage)
+            author.save()
+            return Response(AuthorSerializer(author).data, status=200)
+        except:
+            return Response('POST was unsuccessful. Please check the required information was filled out correctly again.', status=422)
 
 
 class FollowerList(APIView):
