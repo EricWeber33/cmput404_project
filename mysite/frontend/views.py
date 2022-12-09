@@ -41,6 +41,7 @@ else:
 
 TEAM_6 = "socialdistribution-cmput404.herokuapp.com"
 TEAM_9 = "team9-socialdistribution.herokuapp.com"
+TEAM_18 = "cmput404team18-backend.herokuapp.com"
 
 def get_object_from_url(model, url):
     """attempts to return a db item using a url as primary key"""
@@ -527,60 +528,68 @@ def homepage_view(request, pk):
     })
 
 
-@permission_classes(IsAuthenticated,)
-def like_post_submit(request, pk, post_id):
-    
-    # postID = post_id.split('/posts/')[1][:-1]
-    post = get_object_from_url(Post, post_id)
-    url = request.build_absolute_uri()
-    home_url = url.split('/home/')[0] + "/home/"
-    post_like_endpoint = url.split('/home/')[0] + '/posts/'+ post_id + '/likes/'
-
-    if request.method == 'POST':
-        with requests.Session() as client:
-            client.headers.update(request.headers)
-            like_data = {
-                "csrfmiddlewaretoken": get_token(request)
-            }
-            client.headers.update({
-                'Content-Type': None,
-                'Content-Length': None,
-            })
-            cookies = {
-                'sessionid': request.session.session_key,
-                'csrftoken': get_token(request)
-            }
-            client.post(post_like_endpoint, cookies=cookies, data=like_data)
-    
-    return HttpResponseRedirect(home_url)
+async def post_like(url, like_payload, username=None, password=None):
+    like_payload['object'] = url
+    if TEAM_6 in url:
+        username = 'argho'
+        password = '12345678!'
+    elif TEAM_18 in url:
+        username='t18user1'
+        password='Password123!'
+    print("Sending like to " + url.strip('/')+'/likes/')  
+    print(like_payload)
+    kwargs = {'auth': aiohttp.BasicAuth(username, password)} if username and password else {}
+    async with aiohttp.ClientSession(**kwargs) as client:
+        endpoint = url.strip('/')+'/likes/'
+        async with client.post(endpoint, json=like_payload):
+            pass
 
 
 
 @permission_classes(IsAuthenticated,)
-def like_comment_submit(request, pk, comments, comment_id):
-    
-    comment = get_object_from_url(Comment, comment_id)
+def like_submit(request, pk):
     url = request.build_absolute_uri()
-    home_url = url.split('/home/')[0] + "/home/"
-    comment_like_url = comments + comment_id + '/likes/'
-    
-    if request.method == 'POST':
-        with requests.Session() as client:
-            client.headers.update(request.headers)
-            like_data = {
-                "csrfmiddlewaretoken": get_token(request)
-            }
-            client.headers.update({
-                'Content-Type': None,
-                'Content-Length': None,
-            })
-            cookies = {
-                'sessionid': request.session.session_key,
-                'csrftoken': get_token(request)
-            }
-            client.post(comment_like_url, cookies=cookies, data=like_data)
-    
-    return HttpResponseRedirect(home_url)
+    redirect_url = url.replace('like_submit/', '')
+    author = Author.objects.get(pk=pk)
+    payload = {
+        "@context": f"like from {url}",
+        "author": AuthorSerializer(author).data
+    }
+    if '/' in request.POST['obj_id']:
+        # hooray this comments id is a url
+        # we can just send the requests
+        payload['summary'] = f"{author.displayName} likes your post"
+        if '/comments/' in request.POST['obj_id']:
+            payload['summary'] = f"{author.displayName} likes your comment"
+        asyncio.run(post_like(request.POST['obj_id'], payload))
+        if TEAM_6 in request.POST['obj_id'] or TEAM_9 in request.POST['obj_id'] or TEAM_18 in request.POST['obj_id']:
+        # to aid our authors/author/liked/ endpoint we create a like object
+            like = Like.objects.create(
+                context=payload["@context"],
+                author=payload["author"],
+                summary=payload["summary"],
+                object=url
+            )
+            like.save()
+        return HttpResponseRedirect(redirect_url)
+    if not '/' in request.POST.get('parent_post_id'):
+        # neither the post id or the comment is a url
+        # we do nothing rather than figure out where to send this to
+        return HttpResponseRedirect(redirect_url)
+    # in this case this must be a comment
+    post_like_url = request.POST['parent_post_id'].strip('/') + '/comments/' + request.POST['obj_id']
+    payload['summary'] = f"{author.displayName} likes your comment"
+    asyncio.run(post_like(post_like_url, payload))
+    if TEAM_6 in post_like_url or TEAM_9 in post_like_url or TEAM_18 in post_like_url:
+        # to aid our authors/author/liked/ endpoint we create a like object
+            like = Like.objects.create(
+                context=payload["@context"],
+                author=payload["author"],
+                summary=payload["summary"],
+                object=url
+            )
+            like.save()
+    return HttpResponseRedirect(redirect_url)
 
 @permission_classes(IsAuthenticated,)
 def github_activity(request, pk):

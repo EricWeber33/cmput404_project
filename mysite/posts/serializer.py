@@ -63,5 +63,6 @@ class LikeSerializer(serializers.ModelSerializer):
         ret['@context'] = ret['context']
         ret.pop('context')
         ret['type'] = 'Like'
-        ret.pop('id')
+        if ret.get('id'):
+            ret.pop('id')
         return ret

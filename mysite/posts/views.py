@@ -585,7 +585,7 @@ class AuthorLikesList(APIView):
         try:
             author = Author.objects.get(pk=author_pk)
 
-            likes = Like.objects.all().filter(author=author)
+            likes = Like.objects.all().filter(author__url=author.url)
             likes_data = LikeSerializer(likes, many=True).data
 
             #TODO hide "friends only likes" from non-authenticated authors
