@@ -2,10 +2,15 @@
 <html>
     <head>
     <style>
-    #profileImage { float: left; border-radius: 50%; margin: 5%; height: 200px; width: 200px;}
-    #profileInfo {margin: 7%; font-size: 125%;}
-    .identifier {font-weight: 900; margin-top: 3%; margin-left: 5%;}
-    #updateProfile {margin-bottom: 3%;}
+        #profileImage { float: left; border-radius: 50%; margin: 5%; height: 200px; width: 200px;}
+        #profileInfo {margin: 7%; font-size: 125%;}
+        .identifier {font-weight: 900; margin-top: 3%; margin-left: 5%;}
+        #updateProfile {font-family: monospace; margin-bottom: 3%;}
+        /* .tab {overflow: hidden;border: 1px solid inherit;background-color: inherit;}
+        .tab button {font-family: monospace; font-weight: 900; font-size: large;background-color: inherit; float: left; border: none; outline: none; cursor: pointer; padding: 14px 16px; transition: 0.3s; color: #ddd; width: 50%;}
+        .tab button:hover {background-color:  rgb(0, 225, 255);}
+        .tab button.active {background-color: #ccc;}
+        .tabcontent {display: none;padding: 6px 12px;border: 1px solid #ccc;border-top: none;} */
     </style>
         <link rel="stylesheet" href="{% static 'home.css' %}">
     </head>
@@ -21,6 +26,7 @@
         <p>{{ author.github }}</p>     
     </div>
     <br><br><br>
+    {% if profileForm %}
     <hr class="item_separator">
     <h2>Update Profile</h2>
     <div id="updateProfile">
@@ -28,7 +34,15 @@
             {% csrf_token %}
             {{ profileForm }}
             <button type="editProfile" style="margin-top: 1%;">Edit Profile</button>
-        </form>  
+        </form>
+
     </div>
     <hr class="item_separator">
+    {% endif %}  
+    <!-- <div class="tab">
+        <form>
+            <button class="tablinks">Posts</button>
+        </form>
+        <button class="tablinks">Following</button>
+    </div> -->
 </html>

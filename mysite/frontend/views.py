@@ -440,8 +440,10 @@ def homepage_view(request, pk):
     url = request.build_absolute_uri().split('home/')[0]
     explore_url = request.build_absolute_uri().replace('/home', '/explore')
     git_url = request.build_absolute_uri().replace('/home', '/githubactivity')
+    author = get_object_from_url(Author, pk)
     profile_url = request.build_absolute_uri().replace('/home', '/profile')
     followers_url = request.build_absolute_uri().replace('/home', '/myfollowers')
+    your_profile_url = profile_url + author.id + '/'
     author = Author.objects.get(pk=url.strip('/').split('/')[-1])
     is_local_user = author.host in LOCAL_NODES
     is_team_6 = TEAM_6 in author.host
@@ -543,6 +545,7 @@ def homepage_view(request, pk):
         'explore_url':explore_url,
         "load_error": load_error,
         "git_url" : git_url,
+        "your_profile_url": your_profile_url,
         "profile_url": profile_url,
         "followers_url" : followers_url,
     })
@@ -632,13 +635,16 @@ def github_activity(request, pk):
     return render(request, 'homepage/github.html', {'items': github_events, 'home_url':home_url})
 
 @permission_classes(IsAuthenticated,)
-def profile_page(request, pk):
-    author = get_object_from_url(Author, pk)
+def profile_page(request, pk, author_id):
+    author = get_object_from_url(Author, author_id)
     data = {
         'github': author.github,
         'profileImage': author.profileImage
     }
-    profileForm = profileUpdateForm(data)
+    if pk == author_id:
+        profileForm = profileUpdateForm(data)
+    else:
+        profileForm = False
     return render(request, 'homepage/profile.html', {'author': author, 'profileForm': profileForm})
 
 @permission_classes(IsAuthenticated,)
@@ -670,4 +676,5 @@ def update_profile(request, pk):
                 }
                 client.post(author_endpoint, cookies=cookies, data=post_data, headers={'accept':'application/json'})
     return HttpResponseRedirect(profileUrl)
+
 
