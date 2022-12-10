@@ -196,27 +196,6 @@ p {
     background-color: #04AA6D;
 }
 
-#profileImage { 
-    float: left; 
-    border-radius: 50%; 
-    margin: 5%; 
-    height: 200px; 
-    width: 200px;
-}
-#profileInfo {
-    margin: 7%; 
-    font-size: 125%;
-}
-.identifier {
-    font-weight: 900; 
-    margin-top: 3%; 
-    margin-left: 5%;
-}
-#updateProfile {
-    font-family: monospace; 
-    margin-bottom: 3%;
-}
-
 #searchInput {
     box-sizing: border-box;
     font-size: 16px;
@@ -256,5 +235,11 @@ p {
 }
 
 .author_search_item:visited {
+    color: inherit;
+}
+
+.follow_list_item {
+    display: block;
+    font-size: 20px;
     color: inherit;
 }

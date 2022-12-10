@@ -10,13 +10,15 @@
         {% with author_id=request.path|spliturl|index:2%}
         <h1>Social Distribution</h1>
         {% include './header.html' %}
+        <h2>Followers</h2>
         <hr class="item_separator">
         <div>
             {% for item in items %}
-                <div class="inbox_block"></div>
+                <div class="inbox_block">
                     <div>
-                        <h3>{{ item.displayName }}</h3>
+                        <a class='follow_list_item' href="/authors/{{author_id}}/profile/{{item.id|spliturl|index:2}}/">{{item.displayName}}</a>
                     </div>
+                </div>
             {% endfor %}
         </div>
         {% endwith %}
