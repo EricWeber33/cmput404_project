@@ -30,7 +30,7 @@
                         {% block comment_notif %}
                         <div class="inbox_block">
                             {% with author_id=item.author.id|spliturl|index:2 %}
-                            <p><a class="notif_link" href="{{profile_url}}{{ author_id }}/">{{ item.author.displayName }}</a> commented on your <a class="notif_link" href="{{ item.id }}">post</a></p>
+                            <p><a class="notif_link" href="{{profile_url}}/">{{ item.author.displayName }}</a> commented on your <a class="notif_link" href="{{ item.id }}">post</a></p>
                             {% endwith %}
                         </div>
                         {% endblock %}
