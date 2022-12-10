@@ -49,5 +49,15 @@ CMPUT 404 group project https://cmput404f22t17.herokuapp.com/
 - Can also edit your own profile
 - Can send/receive follow requests to users on the same or other nodes
 - Can search for other authors to view their profile and send them follow requests
+
+### AJAX usage
+- deleting a post
+- reposting
+- liking posts
+- sending follow requests
+- accepting/rejecting follow requests
+- searching for authors
+
+
 ## License
 [License Details](/LICENSE)
