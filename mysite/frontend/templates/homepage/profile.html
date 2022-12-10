@@ -3,6 +3,7 @@
 <html>
     <head>
         <link rel="stylesheet" href="{% static 'home.css' %}">
+        <link rel="stylesheet" href="{% static 'profile.css' %}">
     </head>
     <body>
         {% with author_id=request.path|spliturl|index:2%}
