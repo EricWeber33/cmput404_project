@@ -47,5 +47,7 @@ CMPUT 404 group project https://cmput404f22t17.herokuapp.com/
 - Github integration with accounts with valid githubs that have public activity enabled
 - Can view profiles (yourself and others)
 - Can also edit your own profile
+- Can send/receive follow requests to users on the same or other nodes
+- Can search for other authors to view their profile and send them follow requests
 ## License
 [License Details](/LICENSE)
