@@ -730,12 +730,11 @@ def profile_page(request, pk, author_id):
     return render(request, 'homepage/profile.html', {'author': author, 'profileForm': profileForm})
 
 @permission_classes(IsAuthenticated,)
-def update_profile(request, pk):
+def update_profile(request, pk, author_id):
     url = request.build_absolute_uri()
     author = get_object_from_url(Author, pk)
-    profileUrl = url.split('/profile/')[0] + '/profile/' + author.id
+    profileUrl = url.split('/profile/')[0] + '/profile/' + author.id +'/'
     author_endpoint = url.split('/profile/')[0] + '/'
-    print(author_endpoint)
     if request.method == 'POST':
         form = profileUpdateForm(request.POST)
         if form.is_valid():
